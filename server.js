@@ -289,6 +289,37 @@ app.get("/api/tools", async (req, res) => {
   const result = await query("SELECT * FROM tools");
   res.json(result.rows);
 });
+app.get("/api/take", async (req, res) => {
+  const { id, nom, pin } = req.query;
+
+  // vérifier utilisateur
+  const user = await query(
+    "SELECT * FROM users WHERE nom=$1 AND pin=$2",
+    [nom, pin]
+  );
+
+  if (user.rows.length === 0) {
+    return res.send("❌ Code incorrect");
+  }
+
+  // vérifier si déjà pris
+  const tool = await query(
+    "SELECT * FROM tools WHERE id=$1",
+    [id]
+  );
+
+  if (tool.rows[0].en_cours) {
+    return res.send("❌ Outil déjà pris");
+  }
+
+  // enregistrer
+  await query(
+    "UPDATE tools SET emprunteur=$1, en_cours=true, date_sortie=NOW() WHERE id=$2",
+    [nom, id]
+  );
+
+  res.send("✅ Outil pris par " + nom);
+});
 const PORT = process.env.PORT || 3000;
 
 initDb()
