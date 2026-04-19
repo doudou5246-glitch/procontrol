@@ -6,6 +6,11 @@ const path = require('path');
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static("public"));
+
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "/public/index.html");
+});
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -282,7 +287,4 @@ initDb()
     console.error('Erreur initialisation DB :', err);
     process.exit(1);
   });
-app.use(express.static("public"));
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/public/index.html");
-});
+
