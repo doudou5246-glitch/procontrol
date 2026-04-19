@@ -1,1 +1,35 @@
 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>ProControl</title>
+</head>
+
+<body style="font-family: Arial; text-align: center; padding: 40px;">
+
+  <h1>🔧 ProControl - Gestion outils</h1>
+
+  <p>Application prête ✅</p>
+
+  <button onclick="test()">Test API</button>
+
+  <p id="result"></p>
+
+  <script>
+    function test() {
+      fetch('/api/tools')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("result").innerText =
+            JSON.stringify(data);
+        })
+        .catch(err => {
+          document.getElementById("result").innerText =
+            "Erreur : " + err;
+        });
+    }
+  </script>
+
+</body>
+</html>
