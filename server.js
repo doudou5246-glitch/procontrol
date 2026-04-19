@@ -62,7 +62,34 @@ app.get("/api/tools", async (req, res) => {
   const result = await query("SELECT * FROM tools");
   res.json(result.rows);
 });
+const QRCode = require('qrcode');
 
+app.get('/qrcode/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const baseUrl =
+      process.env.PUBLIC_BASE_URL ||
+      `${req.protocol}://${req.get('host')}`;
+
+    const url = `${baseUrl}/outil.html?id=${id}`;
+
+    const qr = await QRCode.toDataURL(url);
+
+    res.send(`
+      <html>
+      <body style="text-align:center;font-family:Arial">
+        <h2>QR Code outil ${id}</h2>
+        <img src="${qr}" />
+        <p>${url}</p>
+      </body>
+      </html>
+    `);
+
+  } catch (err) {
+    res.status(500).send("Erreur QR");
+  }
+});
 app.get("/api/take", async (req, res) => {
   const { id, nom, pin } = req.query;
 
