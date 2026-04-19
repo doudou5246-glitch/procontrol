@@ -4,45 +4,12 @@
   <title>ProControl</title>
 </head>
 <body>
-  <h1>ProControl OK ✅</h1>
-  <p>Ton site fonctionne enfin 🎉</p>
 
-  <button onclick="fetch('/api/tools').then(r=>r.json()).then(d=>alert(JSON.stringify(d)))">
-    Voir les outils
-  </button>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <title>ProControl</title>
-</head>
+<h1>ProControl OK ✅</h1>
 
-<body style="font-family: Arial; text-align: center; padding: 40px;">
+<p>Test API :</p>
 
-  <h1>🔧 ProControl - Gestion outils</h1>
-
-  <p>Application prête ✅</p>
-
-  <button onclick="test()">Test API</button>
-
-  <p id="result"></p>
-
-  <script>
-    function test() {
-      fetch('/api/tools')
-        .then(res => res.json())
-        .then(data => {
-          document.getElementById("result").innerText =
-            JSON.stringify(data);
-        })
-        .catch(err => {
-          document.getElementById("result").innerText =
-            "Erreur : " + err;
-        });
-    }
-  </script>
+<a href="/api/tools">Voir outils</a>
 
 </body>
 </html>
