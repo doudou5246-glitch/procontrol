@@ -282,3 +282,7 @@ initDb()
     console.error('Erreur initialisation DB :', err);
     process.exit(1);
   });
+app.use(express.static("public"));
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "/public/index.html");
+});
