@@ -164,22 +164,26 @@ app.get('/qrcode/:id', async (req, res) => {
       `${req.protocol}://${req.get('host')}`;
 
     const url = `${baseUrl}/outil.html?id=${id}`;
+app.get('/qrcode/:id', async (req, res) => {
+  const id = req.params.id;
 
-    const qr = await QRCode.toDataURL(url);
+  const baseUrl = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
 
-    res.send(`
-      <html>
+  const url = `${baseUrl}/outil.html?id=${id}`;
+
+  const qr = await QRCode.toDataURL(url);
+
+  res.send(`
+    <html>
       <body style="text-align:center;font-family:Arial">
         <h2>QR Code outil ${id}</h2>
         <img src="${qr}" />
         <p>${url}</p>
       </body>
-      </html>
-    `);
-
-  } catch (err) {
-    res.status(500).send("Erreur QR");
-  }
+    </html>
+  `);
+});
+  
 });
 const PORT = process.env.PORT || 3000;
 
