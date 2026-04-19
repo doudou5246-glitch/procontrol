@@ -349,15 +349,16 @@ app.get("/api/return", async (req, res) => {
   res.send("✅ Outil rendu");
 });
 await query(`
+`);
+const PORT = process.env.PORT || 3000;
+
+initDb(await query(`
   CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     nom TEXT UNIQUE NOT NULL,
     pin TEXT NOT NULL
   );
-`);
-const PORT = process.env.PORT || 3000;
-
-initDb()
+`);)
   .then(() => {
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`ProControl déployable lancé sur http://localhost:${PORT}`);
