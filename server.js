@@ -1,7 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
-
+const QRCode = require('qrcode');
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
