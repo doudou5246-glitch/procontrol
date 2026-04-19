@@ -358,6 +358,15 @@ initDb(await query(`
     nom TEXT UNIQUE NOT NULL,
     pin TEXT NOT NULL
   );
+  await query(`
+  CREATE TABLE IF NOT EXISTS tools (
+    id SERIAL PRIMARY KEY,
+    nom TEXT,
+    emprunteur TEXT,
+    en_cours BOOLEAN DEFAULT false,
+    date_sortie TIMESTAMP
+  );
+
 `);)
   .then(() => {
     app.listen(PORT, '0.0.0.0', () => {
