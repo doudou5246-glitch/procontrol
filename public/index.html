@@ -5,11 +5,45 @@
 </head>
 <body>
 
-<h1>ProControl OK ✅</h1>
+<h1>🔧 ProControl</h1>
 
-<p>Test API :</p>
+<label>Nom :</label><br>
+<input id="nom"><br><br>
 
-<a href="/api/tools">Voir outils</a>
+<label>PIN :</label><br>
+<input id="pin" type="password"><br><br>
+
+<label>ID outil :</label><br>
+<input id="id"><br><br>
+
+<button onclick="prendre()">Prendre</button>
+<button onclick="rendre()">Rendre</button>
+
+<p id="resultat"></p>
+
+<script>
+async function prendre() {
+  const nom = document.getElementById('nom').value;
+  const pin = document.getElementById('pin').value;
+  const id = document.getElementById('id').value;
+
+  const res = await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
+  const txt = await res.text();
+
+  document.getElementById('resultat').innerText = txt;
+}
+
+async function rendre() {
+  const nom = document.getElementById('nom').value;
+  const pin = document.getElementById('pin').value;
+  const id = document.getElementById('id').value;
+
+  const res = await fetch(`/api/return?id=${id}&nom=${nom}&pin=${pin}`);
+  const txt = await res.text();
+
+  document.getElementById('resultat').innerText = txt;
+}
+</script>
 
 </body>
 </html>
