@@ -285,6 +285,10 @@ app.get("/api/add-tool", async (req, res) => {
   `);
   res.send("outil ajouté");
 });
+app.get("/api/tools", async (req, res) => {
+  const result = await query("SELECT * FROM tools");
+  res.json(result.rows);
+});
 const PORT = process.env.PORT || 3000;
 
 initDb()
