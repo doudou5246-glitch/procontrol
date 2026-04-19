@@ -278,7 +278,13 @@ app.get("/api/tools", async (req, res) => {
   const result = await query("SELECT * FROM tools");
   res.json(result.rows);
 });
-
+app.get("/api/add-tool", async (req, res) => {
+  await query(`
+    INSERT INTO tools (nom)
+    VALUES ('Perceuse')
+  `);
+  res.send("outil ajouté");
+});
 const PORT = process.env.PORT || 3000;
 
 initDb()
