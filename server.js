@@ -320,6 +320,34 @@ app.get("/api/take", async (req, res) => {
 
   res.send("✅ Outil pris par " + nom);
 });
+app.get("/api/return", async (req, res) => {
+  const { id, nom, pin } = req.query;
+
+  const user = await query(
+    "SELECT * FROM users WHERE nom=$1 AND pin=$2",
+    [nom, pin]
+  );
+
+  if (user.rows.length === 0) {
+    return res.send("❌ Code incorrect");
+  }
+
+  const tool = await query(
+    "SELECT * FROM tools WHERE id=$1",
+    [id]
+  );
+
+  if (tool.rows[0].emprunteur !== nom) {
+    return res.send("❌ Tu n’as pas pris cet outil");
+  }
+
+  await query(
+    "UPDATE tools SET emprunteur=NULL, en_cours=false WHERE id=$1",
+    [id]
+  );
+
+  res.send("✅ Outil rendu");
+});
 const PORT = process.env.PORT || 3000;
 
 initDb()
