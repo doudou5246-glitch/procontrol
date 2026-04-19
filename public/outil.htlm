@@ -1,0 +1,26 @@
+<h2>📦 Suivi du matériel</h2>
+<button onclick="charger()">Actualiser</button>
+
+<ul id="liste"></ul>
+
+<script>
+async function charger() {
+  const res = await fetch("/api/tools");
+  const data = await res.json();
+
+  const liste = document.getElementById("liste");
+  liste.innerHTML = "";
+
+  data.forEach(tool => {
+    const li = document.createElement("li");
+
+    if (tool.en_cours) {
+      li.innerText = tool.nom + " → 🔴 pris par " + tool.emprunteur;
+    } else {
+      li.innerText = tool.nom + " → 🟢 disponible";
+    }
+
+    liste.appendChild(li);
+  });
+}
+</script>
