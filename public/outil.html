@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ProControl</title>
+</head>
+<body style="text-align:center;font-family:Arial">
+
+<h2>📦 Outil</h2>
+
+<input id="nom" placeholder="Nom"><br><br>
+<input id="pin" placeholder="PIN" type="password"><br><br>
+
+<button onclick="prendre()">Prendre</button>
+<button onclick="rendre()">Rendre</button>
+
+<p id="msg"></p>
+
+<script>
+const id = new URLSearchParams(window.location.search).get("id");
+
+async function prendre() {
+  const nom = document.getElementById("nom").value;
+  const pin = document.getElementById("pin").value;
+
+  const res = await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
+  document.getElementById("msg").innerText = await res.text();
+}
+
+async function rendre() {
+  const nom = document.getElementById("nom").value;
+  const pin = document.getElementById("pin").value;
+
+  const res = await fetch(`/api/return?id=${id}&nom=${nom}&pin=${pin}`);
+  document.getElementById("msg").innerText = await res.text();
+}
+</script>
+
+</body>
+</html>
