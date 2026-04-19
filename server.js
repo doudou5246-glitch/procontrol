@@ -171,7 +171,7 @@ app.get('/qrcode/:id', async (req, res) => {
 
   const url = `${baseUrl}/outil.html?id=${id}`;
 
-  const qr = await QRCode.toDataURL(url);
+
 
   res.send(`
     <html>
