@@ -2,74 +2,131 @@
 <html>
 <head>
   <title>ProControl</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background: #1e293b;
+      padding: 20px;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+    }
+
+    button {
+      width: 48%;
+      padding: 12px;
+      margin: 5px 1%;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .prendre {
+      background: #ef4444;
+      color: white;
+    }
+
+    .rendre {
+      background: #22c55e;
+      color: white;
+    }
+
+    .card {
+      background: #1e293b;
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+    }
+  </style>
 </head>
+
 <body>
 
-<h1>🔧 ProControl</h1>
+<header>🔧 ProControl</header>
 
-<label>Nom :</label><br>
-<input id="nom"><br><br>
+<div class="container">
 
-<label>PIN :</label><br>
-<input id="pin" type="password"><br><br>
+  <input id="nom" placeholder="Nom">
+  <input id="pin" placeholder="PIN">
+  <input id="id" placeholder="ID outil">
 
-<label>ID outil :</label><br>
-<input id="id"><br><br>
+  <div>
+    <button class="prendre" onclick="prendre()">Prendre</button>
+    <button class="rendre" onclick="rendre()">Rendre</button>
+  </div>
 
-<button onclick="prendre()">Prendre</button>
-<button onclick="rendre()">Rendre</button>
+  <div class="card">
+    <h3>📦 Suivi du matériel</h3>
+    <button onclick="load()">Actualiser</button>
+    <div id="list"></div>
+  </div>
 
-<p id="resultat"></p>
+</div>
 
 <script>
+
 async function prendre() {
-  const nom = document.getElementById('nom').value;
-  const pin = document.getElementById('pin').value;
-  const id = document.getElementById('id').value;
+  const nom = document.getElementById("nom").value;
+  const pin = document.getElementById("pin").value;
+  const id = document.getElementById("id").value;
 
   const res = await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
-  const txt = await res.text();
-
-  document.getElementById('resultat').innerText = txt;
+  alert(await res.text());
 }
 
 async function rendre() {
-  const nom = document.getElementById('nom').value;
-  const pin = document.getElementById('pin').value;
-  const id = document.getElementById('id').value;
+  const nom = document.getElementById("nom").value;
+  const pin = document.getElementById("pin").value;
+  const id = document.getElementById("id").value;
 
   const res = await fetch(`/api/return?id=${id}&nom=${nom}&pin=${pin}`);
-  const txt = await res.text();
-
-  document.getElementById('resultat').innerText = txt;
+  alert(await res.text());
 }
+
+async function load() {
+  const res = await fetch("/api/admin");
+  const data = await res.json();
+
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+
+  data.tools.forEach(t => {
+    list.innerHTML += `
+      <div>
+        🔧 ${t.nom} :
+        ${t.en_cours ? "🔴 Pris par " + t.emprunteur : "🟢 Libre"}
+      </div>
+    `;
+  });
+}
+
+load();
+
 </script>
 
 </body>
 </html>
-<h2>📦 Suivi du matériel</h2>
-<button onclick="charger()">Actualiser</button>
-
-<ul id="liste"></ul>
-
-<script>
-async function charger() {
-  const res = await fetch("/api/tools");
-  const data = await res.json();
-
-  const liste = document.getElementById("liste");
-  liste.innerHTML = "";
-
-  data.forEach(tool => {
-    const li = document.createElement("li");
-
-    if (tool.en_cours) {
-      li.innerText = tool.nom + " → 🔴 pris par " + tool.emprunteur;
-    } else {
-      li.innerText = tool.nom + " → 🟢 disponible";
-    }
-
-    liste.appendChild(li);
-  });
-}
-</script>
