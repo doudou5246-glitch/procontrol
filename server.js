@@ -1,15 +1,18 @@
 const express = require('express');
 const { Pool } = require('pg');
-const path = require('path');
 const QRCode = require('qrcode');
+const path = require('path');
+
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// PAGE PRINCIPALE
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public/index.html"));
 });
 
+// CONNEXION DB
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production'
@@ -17,13 +20,13 @@ const pool = new Pool({
     : false,
 });
 
+// FONCTION QUERY
 async function query(text, params = []) {
   return pool.query(text, params);
 }
 
+// INIT DB
 async function initDb() {
-
-  // USERS
   await query(`
     CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -32,7 +35,6 @@ async function initDb() {
     );
   `);
 
-  // TOOLS
   await query(`
     CREATE TABLE IF NOT EXISTS tools (
       id SERIAL PRIMARY KEY,
@@ -43,52 +45,42 @@ async function initDb() {
     );
   `);
 
-  // AJOUT USER TEST
+  // utilisateur test
   await query(`
     INSERT INTO users (nom, pin)
     VALUES ('Pierre', '1234')
-    ON CONFLICT (nom) DO NOTHING;
+    ON CONFLICT (nom) DO NOTHING
   `);
 
-  // AJOUT OUTIL TEST
+  // outil test
   await query(`
     INSERT INTO tools (nom)
     VALUES ('Perceuse')
-    ON CONFLICT DO NOTHING;
+    ON CONFLICT DO NOTHING
   `);
 }
 
-app.get("/api/tools", async (req, res) => {
-  const result = await query("SELECT * FROM tools");
+// HEALTH CHECK
+app.get('/api/health', async (req, res) => {
+  try {
+    await query('SELECT 1');
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ADMIN
+app.get("/api/admin/tools", async (req, res) => {
+  const result = await query(`
+    SELECT id, nom, emprunteur, en_cours, date_sortie
+    FROM tools
+    ORDER BY id
+  `);
   res.json(result.rows);
 });
 
-app.get('/qrcode/:id', async (req, res) => {
-  try {
-    const id = req.params.id;
-
-    const baseUrl =
-      process.env.PUBLIC_BASE_URL ||
-      `${req.protocol}://${req.get('host')}`;
-
-    const url = `${baseUrl}/outil.html?id=${id}`;
-
-    const qr = await QRCode.toDataURL(url);
-
-    res.send(`
-      <html>
-      <body style="text-align:center;font-family:Arial">
-        <h2>QR Code outil ${id}</h2>
-        <img src="${qr}" />
-        <p>${url}</p>
-      </body>
-      </html>
-    `);
-
-  } catch (err) {
-    res.status(500).send("Erreur QR");
-  }
-});
+// PRENDRE OUTIL
 app.get("/api/take", async (req, res) => {
   const { id, nom, pin } = req.query;
 
@@ -114,14 +106,16 @@ app.get("/api/take", async (req, res) => {
     return res.send("❌ Déjà pris");
   }
 
-  await query(
-    "UPDATE tools SET emprunteur=$1, en_cours=true, date_sortie=NOW() WHERE id=$2",
-    [nom, id]
-  );
+  await query(`
+    UPDATE tools
+    SET emprunteur=$1, en_cours=true, date_sortie=NOW()
+    WHERE id=$2
+  `, [nom, id]);
 
   res.send("✅ Pris par " + nom);
 });
 
+// RENDRE OUTIL
 app.get("/api/return", async (req, res) => {
   const { id, nom, pin } = req.query;
 
@@ -147,55 +141,43 @@ app.get("/api/return", async (req, res) => {
     return res.send("❌ Pas ton outil");
   }
 
-  await query(
-    "UPDATE tools SET emprunteur=NULL, en_cours=false WHERE id=$1",
-    [id]
-  );
+  await query(`
+    UPDATE tools
+    SET emprunteur=NULL, en_cours=false
+    WHERE id=$1
+  `, [id]);
 
   res.send("✅ Rendu");
 });
+
+// QR CODE
 app.get('/qrcode/:id', async (req, res) => {
   try {
     const id = req.params.id;
 
-    const baseUrl =
-      process.env.PUBLIC_BASE_URL ||
-      `${req.protocol}://${req.get('host')}`;
+    const url = `${process.env.PUBLIC_BASE_URL || req.protocol + '://' + req.get('host')}/outil.html?id=${id}`;
 
-    const url = `${baseUrl}/outil.html?id=${id}`;
-app.get('/qrcode/:id', async (req, res) => {
-  const id = req.params.id;
+    const qr = await QRCode.toDataURL(url);
 
-  const baseUrl = process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
-
-  const url = `${baseUrl}/outil.html?id=${id}`;
-  
+    res.send(`
+      <html>
+      <body style="text-align:center;font-family:Arial">
+        <h2>QR Code outil ${id}</h2>
+        <img src="${qr}" />
+        <p>${url}</p>
+      </body>
+      </html>
+    `);
+  } catch (e) {
+    res.send("Erreur QR");
+  }
 });
+
+// LANCEMENT
 const PORT = process.env.PORT || 3000;
-app.get("/api/admin/tools", async (req, res) => {
-  const result = await query(`
-    SELECT id, nom, emprunteur, en_cours, date_sortie
-    FROM tools
-    ORDER BY id
-  `);
-  res.json(result.rows);
-});
-    app.get("/api/admin/history", async (req, res) => {
-  const result = await query(`
-    SELECT nom AS outil, emprunteur, date_sortie
-    FROM tools
-    WHERE date_sortie IS NOT NULL
-    ORDER BY date_sortie DESC
-  `);
-  res.json(result.rows);
-});
-    
-initDb()
-  .then(() => {
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log("Serveur lancé !");
-    });
-  })
-  .catch(err => {
-    console.error(err);
+
+initDb().then(() => {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log("Serveur OK");
   });
+});
