@@ -2,122 +2,109 @@
 <html>
 <head>
   <title>Admin ProControl</title>
-
   <style>
     body {
-      font-family: Arial;
-      background: #0f172a;
-      color: white;
-      padding: 20px;
+      background:#0f172a;
+      color:white;
+      font-family:Arial;
+      padding:20px;
     }
 
     h1 {
-      text-align: center;
-    }
-
-    input, button {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 8px;
-      border: none;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    .add {
-      background: #22c55e;
-      color: white;
-    }
-
-    .delete {
-      background: #ef4444;
-      color: white;
+      text-align:center;
     }
 
     .card {
-      background: #1e293b;
-      padding: 15px;
-      margin-top: 15px;
-      border-radius: 10px;
+      background:#1e293b;
+      padding:20px;
+      border-radius:10px;
+      margin-bottom:20px;
+    }
+
+    input, button {
+      padding:10px;
+      margin:5px;
+      border:none;
+      border-radius:6px;
+    }
+
+    button {
+      background:#22c55e;
+      color:white;
+      cursor:pointer;
+    }
+
+    .danger {
+      background:#ef4444;
+    }
+
+    table {
+      width:100%;
+      margin-top:10px;
+    }
+
+    td {
+      padding:8px;
+      border-bottom:1px solid #334155;
     }
   </style>
 </head>
-
 <body>
 
-<h1>⚙️ ADMIN PROCONTROL</h1>
+<h1>🛠️ Admin ProControl</h1>
 
-<h2>➕ Ajouter outil</h2>
-<input id="toolName" placeholder="Nom outil">
-<button class="add" onclick="addTool()">Ajouter</button>
+<div class="card">
+  <h2>Ajouter un outil</h2>
+  <input id="tool" placeholder="Nom outil">
+  <button onclick="addTool()">Ajouter</button>
+</div>
 
-<h2>👤 Ajouter utilisateur</h2>
-<input id="userName" placeholder="Nom">
-<input id="userPin" placeholder="PIN">
-<button class="add" onclick="addUser()">Créer</button>
+<div class="card">
+  <h2>Suivi matériel</h2>
+  <button onclick="load()">Actualiser</button>
 
-<h2>📦 Matériel</h2>
-<div id="tools"></div>
+  <table id="table"></table>
+</div>
 
-<h2>👥 Utilisateurs</h2>
-<div id="users"></div>
+<div class="card">
+  <h2>Historique</h2>
+  <div id="logs"></div>
+</div>
 
 <script>
-
 async function load() {
-  const res = await fetch("/api/admin");
+  const res = await fetch('/api/admin');
   const data = await res.json();
 
-  // outils
-  const toolsDiv = document.getElementById("tools");
-  toolsDiv.innerHTML = "";
+  const table = document.getElementById("table");
+  table.innerHTML = "";
 
   data.tools.forEach(t => {
-    toolsDiv.innerHTML += `
-      <div class="card">
-        🔧 ${t.nom} (ID: ${t.id})<br>
-        ${t.en_cours ? "🔴 Pris par " + t.emprunteur : "🟢 Libre"}
-      </div>
+    table.innerHTML += `
+      <tr>
+        <td>${t.nom}</td>
+        <td>${t.en_cours ? "🔴 Pris" : "🟢 Libre"}</td>
+        <td>${t.emprunteur || "-"}</td>
+      </tr>
     `;
   });
 
-  // users
-  const usersDiv = document.getElementById("users");
-  usersDiv.innerHTML = "";
+  const logs = document.getElementById("logs");
+  logs.innerHTML = "";
 
-  data.users.forEach(u => {
-    usersDiv.innerHTML += `
-      <div class="card">
-        👤 ${u.nom} (PIN: ${u.pin})
-        <button class="delete" onclick="deleteUser('${u.nom}')">Supprimer</button>
-      </div>
-    `;
+  data.mouvements.forEach(m => {
+    logs.innerHTML += `<p>${m.utilisateur} → ${m.action}</p>`;
   });
 }
 
 async function addTool() {
-  const name = document.getElementById("toolName").value;
-  await fetch("/api/add-tool?nom=" + name);
-  load();
-}
+  const nom = document.getElementById("tool").value;
 
-async function addUser() {
-  const nom = document.getElementById("userName").value;
-  const pin = document.getElementById("userPin").value;
-
-  await fetch(`/api/add-user?nom=${nom}&pin=${pin}`);
-  load();
-}
-
-async function deleteUser(nom) {
-  await fetch(`/api/delete-user?nom=${nom}`);
+  await fetch(`/api/add-tool?nom=${nom}`);
   load();
 }
 
 load();
-
 </script>
 
 </body>
