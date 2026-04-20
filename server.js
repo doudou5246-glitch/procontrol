@@ -191,6 +191,42 @@ app.get("/api/admin", async (req, res) => {
 // ================= START =================
 const PORT = process.env.PORT || 10000;
 
+// ajouter user
+app.get("/api/add-user", async (req, res) => {
+  const { nom, pin } = req.query;
+  await query("INSERT INTO users (nom, pin) VALUES ($1,$2)", [nom, pin]);
+  res.send("user ajouté");
+});
+
+// supprimer user
+app.get("/api/delete-user", async (req, res) => {
+  const { nom } = req.query;
+  await query("DELETE FROM users WHERE nom=$1", [nom]);
+  res.send("user supprimé");
+});
+
+// modifier add-tool pour prendre nom dynamique
+app.get("/api/add-tool", async (req, res) => {
+  const { nom } = req.query;
+
+  await query(`
+    INSERT INTO tools (nom, en_cours)
+    VALUES ($1, false)
+  `, [nom]);
+
+  res.send("outil ajouté");
+});
+
+// ADMIN complet
+app.get("/api/admin", async (req, res) => {
+  const tools = await query("SELECT * FROM tools");
+  const users = await query("SELECT * FROM users");
+
+  res.json({
+    tools: tools.rows,
+    users: users.rows
+  });
+
 initDb().then(() => {
   app.listen(PORT, () => {
     console.log("Serveur OK sur port", PORT);
