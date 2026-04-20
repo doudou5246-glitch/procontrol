@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ProControl Dashboard</title>
+  <title>Admin ProControl</title>
 
   <style>
     body {
@@ -13,92 +13,111 @@
 
     h1 {
       text-align: center;
-      margin-bottom: 30px;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 20px;
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      border-radius: 8px;
+      border: none;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .add {
+      background: #22c55e;
+      color: white;
+    }
+
+    .delete {
+      background: #ef4444;
+      color: white;
     }
 
     .card {
       background: #1e293b;
-      padding: 20px;
-      border-radius: 12px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    }
-
-    .title {
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
-
-    .status {
-      font-size: 14px;
-      margin-top: 10px;
-    }
-
-    .pris {
-      color: #ef4444;
-    }
-
-    .libre {
-      color: #22c55e;
-    }
-
-    button {
-      padding: 10px;
-      margin: 20px auto;
-      display: block;
-      border-radius: 8px;
-      border: none;
-      background: #22c55e;
-      color: white;
-      cursor: pointer;
+      padding: 15px;
+      margin-top: 15px;
+      border-radius: 10px;
     }
   </style>
 </head>
 
 <body>
 
-<h1>📊 Gestion matériel</h1>
+<h1>⚙️ ADMIN PROCONTROL</h1>
 
-<button onclick="load()">🔄 Actualiser</button>
+<h2>➕ Ajouter outil</h2>
+<input id="toolName" placeholder="Nom outil">
+<button class="add" onclick="addTool()">Ajouter</button>
 
-<div class="grid" id="grid"></div>
+<h2>👤 Ajouter utilisateur</h2>
+<input id="userName" placeholder="Nom">
+<input id="userPin" placeholder="PIN">
+<button class="add" onclick="addUser()">Créer</button>
+
+<h2>📦 Matériel</h2>
+<div id="tools"></div>
+
+<h2>👥 Utilisateurs</h2>
+<div id="users"></div>
 
 <script>
+
 async function load() {
   const res = await fetch("/api/admin");
   const data = await res.json();
 
-  const grid = document.getElementById("grid");
-  grid.innerHTML = "";
+  // outils
+  const toolsDiv = document.getElementById("tools");
+  toolsDiv.innerHTML = "";
 
-  data.tools.forEach(tool => {
-    const card = document.createElement("div");
-    card.className = "card";
-
-    card.innerHTML = `
-      <div class="title">🔧 ${tool.nom}</div>
-
-      <div class="status ${tool.en_cours ? 'pris' : 'libre'}">
-        ${tool.en_cours ? 
-          "🔴 Pris par " + tool.emprunteur :
-          "🟢 Disponible"}
-      </div>
-
-      <div>
-        📅 ${tool.date_sortie || "-"}
+  data.tools.forEach(t => {
+    toolsDiv.innerHTML += `
+      <div class="card">
+        🔧 ${t.nom} (ID: ${t.id})<br>
+        ${t.en_cours ? "🔴 Pris par " + t.emprunteur : "🟢 Libre"}
       </div>
     `;
+  });
 
-    grid.appendChild(card);
+  // users
+  const usersDiv = document.getElementById("users");
+  usersDiv.innerHTML = "";
+
+  data.users.forEach(u => {
+    usersDiv.innerHTML += `
+      <div class="card">
+        👤 ${u.nom} (PIN: ${u.pin})
+        <button class="delete" onclick="deleteUser('${u.nom}')">Supprimer</button>
+      </div>
+    `;
   });
 }
 
+async function addTool() {
+  const name = document.getElementById("toolName").value;
+  await fetch("/api/add-tool?nom=" + name);
+  load();
+}
+
+async function addUser() {
+  const nom = document.getElementById("userName").value;
+  const pin = document.getElementById("userPin").value;
+
+  await fetch(`/api/add-user?nom=${nom}&pin=${pin}`);
+  load();
+}
+
+async function deleteUser(nom) {
+  await fetch(`/api/delete-user?nom=${nom}`);
+  load();
+}
+
 load();
+
 </script>
 
 </body>
