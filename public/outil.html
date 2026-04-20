@@ -89,7 +89,7 @@ window.onload = () => {
 const params = new URLSearchParams(window.location.search);
 const id = params.get("id");
 
-async function prendre() {
+async function prendre(localStorage.setItem("nom", nom);) {
   const nom = document.getElementById("nom").value;
   const pin = document.getElementById("pin").value;
 
@@ -99,7 +99,7 @@ async function prendre() {
   document.getElementById("result").innerText = txt;
 }
 
-async function rendre() {
+async function rendre(localStorage.setItem("nom", nom);) {
   const nom = document.getElementById("nom").value;
   const pin = document.getElementById("pin").value;
 
