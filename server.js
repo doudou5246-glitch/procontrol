@@ -52,7 +52,7 @@ async function createUser(nom, pin) {
   await query(`
     INSERT INTO users (nom, pin)
     VALUES ($1, $2)
-    ON CONFLICT (nom) DO UPDATE SET pin = EXCLUDED.pin
+    ON CONFLICT (nom) DO NOTHING
   `, [nom, pin]);
 }
 
