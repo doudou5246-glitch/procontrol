@@ -79,6 +79,13 @@
 </div>
 
 <script>
+  // au chargement
+window.onload = () => {
+  const savedName = localStorage.getItem("nom");
+  if (savedName) {
+    document.getElementById("nom").value = savedName;
+  }
+};
 const params = new URLSearchParams(window.location.search);
 const id = params.get("id");
 
