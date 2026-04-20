@@ -172,7 +172,14 @@ app.get('/qrcode/:id', async (req, res) => {
   
 });
 const PORT = process.env.PORT || 3000;
-
+app.get("/api/admin/tools", async (req, res) => {
+  const result = await query(`
+    SELECT id, nom, emprunteur, en_cours, date_sortie
+    FROM tools
+    ORDER BY id
+  `);
+  res.json(result.rows);
+});
 initDb()
   .then(() => {
     app.listen(PORT, '0.0.0.0', () => {
