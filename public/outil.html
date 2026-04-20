@@ -1,29 +1,95 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ProControl</title>
+  <meta charset="UTF-8">
+  <title>Outil</title>
+
+  <style>
+    body {
+      font-family: Arial;
+      background: #0f172a;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: #1e293b;
+      padding: 25px;
+      border-radius: 12px;
+      max-width: 350px;
+      margin: auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    input {
+      width: 90%;
+      padding: 10px;
+      margin: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 12px;
+      margin: 10px;
+      width: 40%;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .prendre {
+      background: #22c55e;
+      color: white;
+    }
+
+    .rendre {
+      background: #ef4444;
+      color: white;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
 </head>
-<body style="text-align:center;font-family:Arial">
 
-<h2>📦 Outil</h2>
+<body>
 
-<input id="nom" placeholder="Nom"><br><br>
-<input id="pin" placeholder="PIN" type="password"><br><br>
+<div class="card">
+  <h1>🔧 Outil</h1>
 
-<button onclick="prendre()">Prendre</button>
-<button onclick="rendre()">Rendre</button>
+  <input id="nom" placeholder="Ton prénom">
+  <input id="pin" placeholder="Code PIN" type="password">
 
-<p id="msg"></p>
+  <br>
+
+  <button class="prendre" onclick="prendre()">Prendre</button>
+  <button class="rendre" onclick="rendre()">Rendre</button>
+
+  <div id="result"></div>
+</div>
 
 <script>
-const id = new URLSearchParams(window.location.search).get("id");
+const params = new URLSearchParams(window.location.search);
+const id = params.get("id");
 
 async function prendre() {
   const nom = document.getElementById("nom").value;
   const pin = document.getElementById("pin").value;
 
   const res = await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
-  document.getElementById("msg").innerText = await res.text();
+  const txt = await res.text();
+
+  document.getElementById("result").innerText = txt;
 }
 
 async function rendre() {
@@ -31,7 +97,9 @@ async function rendre() {
   const pin = document.getElementById("pin").value;
 
   const res = await fetch(`/api/return?id=${id}&nom=${nom}&pin=${pin}`);
-  document.getElementById("msg").innerText = await res.text();
+  const txt = await res.text();
+
+  document.getElementById("result").innerText = txt;
 }
 </script>
 
