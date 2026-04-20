@@ -1,75 +1,101 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin</title>
+  <title>ProControl Dashboard</title>
+
   <style>
     body {
       font-family: Arial;
       background: #0f172a;
       color: white;
+      padding: 20px;
+    }
+
+    h1 {
       text-align: center;
+      margin-bottom: 30px;
     }
 
-    table {
-      margin: auto;
-      border-collapse: collapse;
-      width: 90%;
-      margin-top: 30px;
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 20px;
     }
 
-    th, td {
-      border: 1px solid #334155;
+    .card {
+      background: #1e293b;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    }
+
+    .title {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    .status {
+      font-size: 14px;
+      margin-top: 10px;
+    }
+
+    .pris {
+      color: #ef4444;
+    }
+
+    .libre {
+      color: #22c55e;
+    }
+
+    button {
       padding: 10px;
-    }
-
-    th {
-      background: #1e293b;
-    }
-
-    tr:nth-child(even) {
-      background: #1e293b;
+      margin: 20px auto;
+      display: block;
+      border-radius: 8px;
+      border: none;
+      background: #22c55e;
+      color: white;
+      cursor: pointer;
     }
   </style>
 </head>
 
 <body>
 
-<h1>📊 Suivi matériel</h1>
+<h1>📊 Gestion matériel</h1>
 
-<table>
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Nom</th>
-      <th>Emprunteur</th>
-      <th>Status</th>
-      <th>Date</th>
-    </tr>
-  </thead>
+<button onclick="load()">🔄 Actualiser</button>
 
-  <tbody id="data"></tbody>
-</table>
+<div class="grid" id="grid"></div>
 
 <script>
 async function load() {
-  const res = await fetch("/api/admin/tools");
+  const res = await fetch("/api/admin");
   const data = await res.json();
 
-  let html = "";
+  const grid = document.getElementById("grid");
+  grid.innerHTML = "";
 
-  data.forEach(t => {
-    html += `
-      <tr>
-        <td>${t.id}</td>
-        <td>${t.nom}</td>
-        <td>${t.emprunteur || "-"}</td>
-        <td>${t.en_cours ? "🔴 Pris" : "🟢 Disponible"}</td>
-        <td>${t.date_sortie || "-"}</td>
-      </tr>
+  data.tools.forEach(tool => {
+    const card = document.createElement("div");
+    card.className = "card";
+
+    card.innerHTML = `
+      <div class="title">🔧 ${tool.nom}</div>
+
+      <div class="status ${tool.en_cours ? 'pris' : 'libre'}">
+        ${tool.en_cours ? 
+          "🔴 Pris par " + tool.emprunteur :
+          "🟢 Disponible"}
+      </div>
+
+      <div>
+        📅 ${tool.date_sortie || "-"}
+      </div>
     `;
-  });
 
-  document.getElementById("data").innerHTML = html;
+    grid.appendChild(card);
+  });
 }
 
 load();
