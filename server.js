@@ -226,6 +226,7 @@ app.get("/api/admin", async (req, res) => {
     tools: tools.rows,
     users: users.rows
   });
+});
 
 initDb().then(() => {
   app.listen(PORT, () => {
