@@ -180,6 +180,16 @@ app.get("/api/admin/tools", async (req, res) => {
   `);
   res.json(result.rows);
 });
+    app.get("/api/admin/history", async (req, res) => {
+  const result = await query(`
+    SELECT nom AS outil, emprunteur, date_sortie
+    FROM tools
+    WHERE date_sortie IS NOT NULL
+    ORDER BY date_sortie DESC
+  `);
+  res.json(result.rows);
+});
+    
 initDb()
   .then(() => {
     app.listen(PORT, '0.0.0.0', () => {
