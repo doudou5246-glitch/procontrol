@@ -62,7 +62,6 @@ app.get("/api/tools", async (req, res) => {
   const result = await query("SELECT * FROM tools");
   res.json(result.rows);
 });
-const QRCode = require('qrcode');
 
 app.get('/qrcode/:id', async (req, res) => {
   try {
