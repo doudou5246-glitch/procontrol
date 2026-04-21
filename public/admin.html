@@ -1,137 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin ProControl</title>
-
 <style>
-body {
-  background:#0f172a;
-  color:white;
-  font-family:Arial;
-  padding:20px;
-}
-
-h1 { text-align:center; }
-
-.card {
-  background:#1e293b;
-  padding:20px;
-  margin:20px auto;
-  border-radius:12px;
-  max-width:800px;
-}
-
-input {
-  padding:10px;
-  margin:5px;
-  border-radius:6px;
-  border:none;
-}
-
-button {
-  padding:10px 15px;
-  border:none;
-  border-radius:6px;
-  background:#22c55e;
-  color:white;
-  cursor:pointer;
-}
-
-.delete {
-  background:#ef4444;
-}
-
-table {
-  width:100%;
-  margin-top:10px;
-}
-
-td, th {
-  padding:10px;
-  border-bottom:1px solid #334155;
-  text-align:left;
-}
+body { font-family: Arial; background:#0f172a; color:white; }
+.card { background:#1e293b; padding:20px; margin:20px; border-radius:10px; }
 </style>
 </head>
 
 <body>
 
-<h1>🛠️ Dashboard ProControl</h1>
+<h1>📊 Dashboard</h1>
 
 <div class="card">
-  <h2>➕ Ajouter un outil</h2>
-  <input id="tool" placeholder="Nom outil">
-  <button onclick="addTool()">Ajouter</button>
+<h2>Outils</h2>
+<div id="tools"></div>
 </div>
 
 <div class="card">
-  <h2>📦 Matériel</h2>
-  <button onclick="load()">Actualiser</button>
-
-  <table>
-    <thead>
-      <tr>
-        <th>Outil</th>
-        <th>Statut</th>
-        <th>Utilisateur</th>
-      </tr>
-    </thead>
-    <tbody id="tools"></tbody>
-  </table>
-</div>
-
-<div class="card">
-  <h2>👤 Utilisateurs</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Nom</th>
-        <th>PIN</th>
-      </tr>
-    </thead>
-    <tbody id="users"></tbody>
-  </table>
+<h2>Utilisateurs</h2>
+<div id="users"></div>
 </div>
 
 <script>
+
 async function load() {
   const res = await fetch('/api/admin');
   const data = await res.json();
 
-  const tools = document.getElementById("tools");
-  tools.innerHTML = "";
+  document.getElementById("tools").innerHTML =
+    data.tools.map(t => `
+      ${t.nom} → ${t.en_cours ? "🔴 " + t.emprunteur : "🟢 Libre"}<br>
+    `).join("");
 
-  data.tools.forEach(t => {
-    tools.innerHTML += `
-      <tr>
-        <td>${t.nom}</td>
-        <td>${t.en_cours ? "🔴 Pris" : "🟢 Libre"}</td>
-        <td>${t.emprunteur || "-"}</td>
-      </tr>
-    `;
-  });
-
-  const users = document.getElementById("users");
-  users.innerHTML = "";
-
-  data.users.forEach(u => {
-    users.innerHTML += `
-      <tr>
-        <td>${u.nom}</td>
-        <td>${u.pin}</td>
-      </tr>
-    `;
-  });
-}
-
-async function addTool() {
-  const nom = document.getElementById("tool").value;
-  await fetch(`/api/add-tool?nom=${nom}`);
-  load();
+  document.getElementById("users").innerHTML =
+    data.users.map(u => `${u.nom}<br>`).join("");
 }
 
 load();
+
 </script>
 
 </body>
