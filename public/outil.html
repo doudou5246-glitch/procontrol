@@ -98,6 +98,39 @@ async function give() {
   alert("Rendu !");
 }
 
+  <script>
+const id = new URLSearchParams(window.location.search).get("id");
+
+// 🔥 charger utilisateur sauvegardé
+let savedUser = localStorage.getItem("user");
+if (savedUser) {
+  document.getElementById("nom").value = savedUser;
+}
+
+// 🔥 sauvegarder user
+function saveUser(nom) {
+  localStorage.setItem("user", nom);
+}
+
+async function take() {
+  const nom = document.getElementById("nom").value;
+  const pin = document.getElementById("pin").value;
+
+  saveUser(nom);
+
+  const res = await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
+  alert(await res.text());
+}
+
+async function give() {
+  const nom = document.getElementById("nom").value;
+  const pin = document.getElementById("pin").value;
+
+  const res = await fetch(`/api/return?id=${id}`);
+  alert(await res.text());
+}
+  
+</script>
 loadUsers();
 
 </script>
