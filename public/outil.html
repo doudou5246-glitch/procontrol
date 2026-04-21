@@ -1,9 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>ProControl</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body {
   font-family: Arial;
@@ -12,108 +10,124 @@ body {
   text-align: center;
 }
 
-input {
-  width: 250px;
+.card {
+  background: #1e293b;
+  padding: 25px;
+  border-radius: 12px;
+  max-width: 400px;
+  margin: auto;
+  margin-top: 40px;
+}
+
+select, input {
+  width: 100%;
   padding: 12px;
-  margin: 10px;
+  margin: 10px 0;
   border-radius: 8px;
   border: none;
 }
 
 button {
-  width: 260px;
-  padding: 12px;
-  margin: 10px;
+  width: 100%;
+  padding: 15px;
+  margin: 10px 0;
   border-radius: 8px;
   border: none;
-  font-size: 16px;
 }
 
-.prendre { background: #ef4444; color: white; }
-.rendre { background: #22c55e; color: white; }
-.logout { background: #64748b; color: white; }
+.take { background: red; color:white; }
+.return { background: green; color:white; }
+.logout { background: gray; color:white; }
 </style>
 </head>
 
 <body>
 
-<h1>🔧 ProControl</h1>
+<div class="card">
+<h2>🔧 Outil</h2>
 
-<input id="nom" placeholder="Nom">
-<br>
+<select id="nom"></select>
 <input id="pin" placeholder="PIN" type="password">
-<br>
-<input id="outil" placeholder="ID outil">
-<br>
 
-<button class="prendre" onclick="prendre()">Prendre</button>
-<button class="rendre" onclick="rendre()">Rendre</button>
+<button class="take" onclick="login()">Se connecter</button>
+<button class="take" onclick="take()">Prendre</button>
+<button class="return" onclick="give()">Rendre</button>
 <button class="logout" onclick="logout()">Changer utilisateur</button>
+
+</div>
 
 <script>
 
-// charger utilisateur
-window.onload = function() {
-  document.getElementById("nom").value = localStorage.getItem("nom") || "";
-  document.getElementById("pin").value = localStorage.getItem("pin") || "";
-};
+const id = new URLSearchParams(window.location.search).get("id");
 
-// sauvegarde utilisateur
-function saveUser() {
+// SESSION (pas localStorage)
+function saveSession(nom, pin) {
+  sessionStorage.setItem("nom", nom);
+  sessionStorage.setItem("pin", pin);
+}
+
+function getSession() {
+  return {
+    nom: sessionStorage.getItem("nom"),
+    pin: sessionStorage.getItem("pin")
+  };
+}
+
+function logout() {
+  sessionStorage.clear();
+  alert("Déconnecté");
+}
+
+// charger users
+async function loadUsers() {
+  const res = await fetch('/api/admin');
+  const data = await res.json();
+
+  const select = document.getElementById("nom");
+  select.innerHTML = "";
+
+  data.users.forEach(u => {
+    const opt = document.createElement("option");
+    opt.value = u.nom;
+    opt.text = u.nom;
+    select.appendChild(opt);
+  });
+}
+
+// LOGIN (1 seule fois)
+function login() {
   const nom = document.getElementById("nom").value;
   const pin = document.getElementById("pin").value;
 
-  if (!nom || !pin) {
-    alert("Nom et PIN requis");
-    return false;
-  }
+  if (!nom || !pin) return alert("Nom + PIN requis");
 
-  localStorage.setItem("nom", nom);
-  localStorage.setItem("pin", pin);
-  return true;
+  saveSession(nom, pin);
+  alert("Connecté");
 }
 
 // PRENDRE
-async function prendre() {
-  if (!saveUser()) return;
+async function take() {
+  const { nom, pin } = getSession();
 
-  const nom = localStorage.getItem("nom");
-  const pin = localStorage.getItem("pin");
-  const id = new URLSearchParams(window.location.search).get("id");
-
-  try {
-    const res = await fetch(`/api/prendre?id=${id}&nom=${nom}&pin=${pin}`);
-    const txt = await res.text();
-    alert(txt);
-  } catch (e) {
-    alert("Erreur serveur");
-    console.error(e);
+  if (!nom || !pin) {
+    return alert("Connecte-toi d'abord");
   }
+
+  const res = await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
+  alert(await res.text());
 }
 
 // RENDRE
-async function rendre() {
-  if (!saveUser()) return;
+async function give() {
+  const { nom } = getSession();
 
-  const nom = localStorage.getItem("nom");
-  const pin = localStorage.getItem("pin");
-  const id = new URLSearchParams(window.location.search).get("id");
+  if (!nom) return alert("Connecte-toi");
 
-  try {
-    const res = await fetch(`/api/rendre?id=${id}&nom=${nom}&pin=${pin}`);
-    const txt = await res.text();
-    alert(txt);
-  } catch (e) {
-    alert("Erreur serveur");
-    console.error(e);
-  }
+  const res = await fetch(`/api/return?id=${id}&nom=${nom}`);
+  alert(await res.text());
 }
 
-// LOGOUT
-function logout() {
-  localStorage.clear();
-  location.reload();
-}
+loadUsers();
 
 </script>
 
