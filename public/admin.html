@@ -1,39 +1,126 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <style>
-body { font-family: Arial; background:#0f172a; color:white; }
-.card { background:#1e293b; padding:20px; margin:20px; border-radius:10px; }
+
+body {
+  font-family: Arial;
+  background:#0f172a;
+  color:white;
+  padding:20px;
+}
+
+.card {
+  background:#1e293b;
+  padding:20px;
+  border-radius:10px;
+  margin-bottom:20px;
+}
+
+button {
+  padding:10px;
+  margin:5px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.add { background:#3b82f6; color:white; }
+.delete { background:red; color:white; }
+.qr { background:green; color:white; }
+
 </style>
 </head>
 
 <body>
 
-<h1>📊 Dashboard</h1>
+<h1>📊 Admin ProControl</h1>
 
 <div class="card">
-<h2>Outils</h2>
+<h2>➕ Ajouter outil</h2>
+<input id="toolName" placeholder="Nom outil">
+<button class="add" onclick="addTool()">Ajouter</button>
+</div>
+
+<div class="card">
+<h2>👤 Ajouter utilisateur</h2>
+<input id="userName" placeholder="Nom">
+<input id="userPin" placeholder="PIN">
+<button class="add" onclick="addUser()">Ajouter</button>
+</div>
+
+<div class="card">
+<h2>🔧 Outils</h2>
 <div id="tools"></div>
 </div>
 
 <div class="card">
-<h2>Utilisateurs</h2>
+<h2>👥 Utilisateurs</h2>
 <div id="users"></div>
 </div>
 
 <script>
 
+// ================= LOAD =================
 async function load() {
   const res = await fetch('/api/admin');
   const data = await res.json();
 
-  document.getElementById("tools").innerHTML =
-    data.tools.map(t => `
-      ${t.nom} → ${t.en_cours ? "🔴 " + t.emprunteur : "🟢 Libre"}<br>
-    `).join("");
+  const toolsDiv = document.getElementById("tools");
+  toolsDiv.innerHTML = "";
 
-  document.getElementById("users").innerHTML =
-    data.users.map(u => `${u.nom}<br>`).join("");
+  data.tools.forEach(t => {
+    toolsDiv.innerHTML += `
+      <p>
+        ${t.nom} → ${t.en_cours ? "🔴 "+t.emprunteur : "🟢 Libre"}
+        <button class="delete" onclick="deleteTool(${t.id})">❌</button>
+        <button class="qr" onclick="qr(${t.id})">QR</button>
+      </p>
+    `;
+  });
+
+  const usersDiv = document.getElementById("users");
+  usersDiv.innerHTML = "";
+
+  data.users.forEach(u => {
+    usersDiv.innerHTML += `
+      <p>
+        ${u.nom}
+        <button class="delete" onclick="deleteUser('${u.nom}')">❌</button>
+      </p>
+    `;
+  });
+}
+
+// ================= ADD =================
+async function addTool() {
+  const name = document.getElementById("toolName").value;
+  await fetch(`/api/add-tool?nom=${name}`);
+  load();
+}
+
+async function addUser() {
+  const name = document.getElementById("userName").value;
+  const pin = document.getElementById("userPin").value;
+  await fetch(`/api/add-user?nom=${name}&pin=${pin}`);
+  load();
+}
+
+// ================= DELETE =================
+async function deleteTool(id) {
+  await fetch(`/api/delete-tool?id=${id}`);
+  load();
+}
+
+async function deleteUser(nom) {
+  await fetch(`/api/delete-user?nom=${nom}`);
+  load();
+}
+
+// ================= QR =================
+function qr(id) {
+  window.open(`/qrcode/${id}`);
 }
 
 load();
