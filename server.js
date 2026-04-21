@@ -81,41 +81,30 @@ app.get("/api/add-tool", async (req, res) => {
 });
 
 // ================= PRENDRE =================
-app.get("/api/take", async (req, res) => {
+app.get('/api/take', async (req, res) => {
   const { id, nom, pin } = req.query;
 
-  if (!id || !nom || !pin) return res.send("❌ champs requis");
-
-  await query(`
-    INSERT INTO users (nom, pin)
-    VALUES ($1,$2)
-    ON CONFLICT (nom) DO NOTHING
-  `, [nom, pin]);
-
-  const user = await query(
-    "SELECT * FROM users WHERE nom=$1 AND pin=$2",
+  const user = await pool.query(
+    'SELECT * FROM users WHERE nom=$1 AND pin=$2',
     [nom, pin]
   );
 
-  if (user.rows.length === 0) return res.send("❌ PIN incorrect");
+  if (user.rows.length === 0) {
+    // création auto
+    await pool.query(`
+      INSERT INTO users (nom, pin)
+      VALUES ($1, $2)
+      ON CONFLICT (nom) DO NOTHING
+    `, [nom, pin]);
+  }
 
-  const tool = await query("SELECT * FROM tools WHERE id=$1", [id]);
+  await pool.query(`
+    UPDATE tools 
+    SET emprunteur=$1, en_cours=true, date_sortie=NOW()
+    WHERE id=$2
+  `, [nom, id]);
 
-  if (!tool.rows.length) return res.send("❌ outil introuvable");
-
-  if (tool.rows[0].en_cours) return res.send("❌ déjà pris");
-
-  await query(
-    "UPDATE tools SET emprunteur=$1, en_cours=true WHERE id=$2",
-    [nom, id]
-  );
-
-  await query(
-    "INSERT INTO mouvements (tool_id, utilisateur, action) VALUES ($1,$2,'prise')",
-    [id, nom]
-  );
-
-  res.send("✅ pris par " + nom);
+  res.send("✅ Pris");
 });
 
 // ================= RENDRE =================
