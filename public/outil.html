@@ -33,10 +33,12 @@ button {
   margin: 10px 0;
   border-radius: 8px;
   border: none;
+  font-size: 16px;
 }
 
 .take { background: red; color:white; }
 .return { background: green; color:white; }
+.create { background: #3b82f6; color:white; }
 .logout { background: gray; color:white; }
 </style>
 </head>
@@ -49,7 +51,8 @@ button {
 <select id="nom"></select>
 <input id="pin" placeholder="PIN" type="password">
 
-<button class="take" onclick="login()">Se connecter</button>
+<button class="create" onclick="createUser()">Créer utilisateur</button>
+<button onclick="login()">Se connecter</button>
 <button class="take" onclick="take()">Prendre</button>
 <button class="return" onclick="give()">Rendre</button>
 <button class="logout" onclick="logout()">Changer utilisateur</button>
@@ -60,10 +63,54 @@ button {
 
 const id = new URLSearchParams(window.location.search).get("id");
 
-// 🔥 SESSION (TEMPORAIRE)
-function saveSession(nom, pin) {
+/* ================= USERS ================= */
+
+async function loadUsers() {
+  try {
+    const res = await fetch('/api/admin');
+    const data = await res.json();
+
+    const select = document.getElementById("nom");
+    select.innerHTML = "";
+
+    data.users.forEach(u => {
+      const opt = document.createElement("option");
+      opt.value = u.nom;
+      opt.text = u.nom;
+      select.appendChild(opt);
+    });
+
+  } catch (e) {
+    console.log("Erreur chargement utilisateurs");
+  }
+}
+
+/* ================= CREATE USER ================= */
+
+async function createUser() {
+  const nom = prompt("Nom ?");
+  const pin = prompt("PIN ?");
+
+  if (!nom || !pin) return alert("Nom et PIN requis");
+
+  await fetch(`/api/add-user?nom=${nom}&pin=${pin}`);
+
+  alert("Utilisateur créé");
+  loadUsers();
+}
+
+/* ================= SESSION ================= */
+
+function login() {
+  const nom = document.getElementById("nom").value;
+  const pin = document.getElementById("pin").value;
+
+  if (!nom || !pin) return alert("Nom + PIN requis");
+
   sessionStorage.setItem("nom", nom);
   sessionStorage.setItem("pin", pin);
+
+  alert("Connecté");
 }
 
 function getSession() {
@@ -73,52 +120,35 @@ function getSession() {
   };
 }
 
-// 🔥 LOGIN (UNE SEULE FOIS)
-function login() {
-  const nom = document.getElementById("nom").value;
-  const pin = document.getElementById("pin").value;
-
-  if (!nom || !pin) {
-    alert("Nom + PIN requis");
-    return;
-  }
-
-  saveSession(nom, pin);
-  alert("✅ Connecté");
+function logout() {
+  sessionStorage.clear();
+  alert("Déconnecté");
 }
 
-// 🔥 PRENDRE
+/* ================= ACTIONS ================= */
+
 async function take() {
   const { nom, pin } = getSession();
 
   if (!nom || !pin) {
-    return alert("⚠️ Connecte-toi une fois");
+    return alert("Connecte-toi d'abord");
   }
 
   const res = await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
   alert(await res.text());
 }
 
-// 🔥 RENDRE
 async function give() {
-  const { nom, pin } = getSession();
+  const { nom } = getSession();
 
-  if (!nom || !pin) {
-    return alert("⚠️ Connecte-toi");
-  }
+  if (!nom) return alert("Connecte-toi");
 
   const res = await fetch(`/api/return?id=${id}&nom=${nom}`);
   alert(await res.text());
 }
 
-// 🔥 LOGOUT
-function logout() {
-  sessionStorage.clear();
-  alert("Déconnecté");
-}
+/* ================= INIT ================= */
 
-</script>
-  
 loadUsers();
 
 </script>
