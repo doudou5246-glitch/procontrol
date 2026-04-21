@@ -116,6 +116,7 @@ function prendre() {
     .then(alert);
 }
 </script>
+  
   alert(txt);
 }
 
@@ -138,7 +139,16 @@ function loadUser() {
   document.getElementById("nom").value = localStorage.getItem("user_nom") || "";
   document.getElementById("pin").value = localStorage.getItem("user_pin") || "";
 }
+<button onclick="logout()">Changer d'utilisateur</button>
 
+<script>
+function logout() {
+  localStorage.clear();
+  location.reload();
+}
+</script>
+  
+    
 window.onload = loadUser;
 </script>
   
