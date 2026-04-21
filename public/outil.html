@@ -112,6 +112,23 @@ async function give() {
   alert(await res.text());
 }
 
+  <script>
+function saveUser() {
+  const nom = document.getElementById("nom").value;
+  const pin = document.getElementById("pin").value;
+
+  localStorage.setItem("user_nom", nom);
+  localStorage.setItem("user_pin", pin);
+}
+
+function loadUser() {
+  document.getElementById("nom").value = localStorage.getItem("user_nom") || "";
+  document.getElementById("pin").value = localStorage.getItem("user_pin") || "";
+}
+
+window.onload = loadUser;
+</script>
+  
 loadUsers();
 
 </script>
