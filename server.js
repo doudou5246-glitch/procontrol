@@ -11,7 +11,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-// ================= INIT DB =================
+/* ================= INIT ================= */
 async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -32,107 +32,104 @@ async function initDb() {
   `);
 }
 
-// ================= ADD USER =================
+/* ================= USER ================= */
 app.get('/api/add-user', async (req, res) => {
+  const { nom, pin } = req.query;
+
   try {
-    const { nom, pin } = req.query;
+    const exist = await pool.query(
+      "SELECT * FROM users WHERE nom=$1",
+      [nom]
+    );
 
-    await pool.query(`
-      INSERT INTO users (nom, pin)
-      VALUES ($1, $2)
-      ON CONFLICT (nom) DO NOTHING
-    `, [nom, pin]);
+    if (exist.rows.length > 0) {
+      return res.send("Utilisateur existe déjà");
+    }
 
-    res.send("✅ utilisateur ok");
-  } catch (e) {
-    res.send("❌ erreur user");
+    await pool.query(
+      "INSERT INTO users (nom, pin) VALUES ($1,$2)",
+      [nom, pin]
+    );
+
+    res.send("Utilisateur créé");
+  } catch (err) {
+    console.error(err);
+    res.send("Erreur serveur");
   }
 });
 
-// ================= ADD TOOL =================
+/* ================= TOOL ================= */
 app.get('/api/add-tool', async (req, res) => {
-  try {
-    const { nom } = req.query;
+  const { nom } = req.query;
 
+  try {
     const result = await pool.query(
       "INSERT INTO tools (nom) VALUES ($1) RETURNING id",
       [nom]
     );
 
-    res.send("✅ outil ID=" + result.rows[0].id);
-  } catch (e) {
-    res.send("❌ erreur tool");
+    res.send("Outil créé ID=" + result.rows[0].id);
+  } catch (err) {
+    res.send("Erreur tool");
   }
 });
 
-// ================= TAKE =================
+/* ================= TAKE ================= */
 app.get('/api/take', async (req, res) => {
+  const { id, nom, pin } = req.query;
+
   try {
-    const { id, nom, pin } = req.query;
-
-    // créer user si besoin
-    await pool.query(`
-      INSERT INTO users (nom, pin)
-      VALUES ($1, $2)
-      ON CONFLICT (nom) DO NOTHING
-    `, [nom, pin]);
-
-    // vérifier PIN
     const user = await pool.query(
       "SELECT * FROM users WHERE nom=$1 AND pin=$2",
       [nom, pin]
     );
 
     if (user.rows.length === 0) {
-      return res.send("❌ PIN incorrect");
+      return res.send("PIN incorrect");
     }
 
-    // vérifier outil
     const tool = await pool.query(
       "SELECT * FROM tools WHERE id=$1",
       [id]
     );
 
     if (!tool.rows.length) {
-      return res.send("❌ outil introuvable");
+      return res.send("Outil introuvable");
     }
 
     if (tool.rows[0].en_cours) {
-      return res.send("❌ Déjà pris par " + tool.rows[0].emprunteur);
+      return res.send("Déjà pris par " + tool.rows[0].emprunteur);
     }
 
-    // prise
-    await pool.query(`
-      UPDATE tools
-      SET emprunteur=$1, en_cours=true, date_sortie=NOW()
-      WHERE id=$2
-    `, [nom, id]);
+    await pool.query(
+      "UPDATE tools SET emprunteur=$1, en_cours=true, date_sortie=NOW() WHERE id=$2",
+      [nom, id]
+    );
 
-    res.send("✅ Pris");
-  } catch (e) {
-    console.error(e);
-    res.send("❌ erreur serveur");
+    res.send("Pris OK");
+  } catch (err) {
+    console.error(err);
+    res.send("Erreur serveur");
   }
 });
 
-// ================= RETURN =================
+/* ================= RETURN ================= */
 app.get('/api/return', async (req, res) => {
+  const { id, nom } = req.query;
+
   try {
-    const { id } = req.query;
+    await pool.query(
+      "UPDATE tools SET emprunteur=NULL, en_cours=false WHERE id=$1",
+      [id]
+    );
 
-    await pool.query(`
-      UPDATE tools
-      SET emprunteur=NULL, en_cours=false
-      WHERE id=$1
-    `, [id]);
-
-    res.send("✅ Rendu");
-  } catch (e) {
-    res.send("❌ erreur retour");
+    res.send("Rendu OK");
+  } catch (err) {
+    res.send("Erreur retour");
   }
 });
 
-// ================= ADMIN =================
+/* ================= ADMIN ================= */
 app.get('/api/admin', async (req, res) => {
   try {
     const tools = await pool.query("SELECT * FROM tools ORDER BY id");
@@ -142,12 +139,12 @@ app.get('/api/admin', async (req, res) => {
       tools: tools.rows,
       users: users.rows
     });
-  } catch (e) {
+  } catch (err) {
     res.json({ tools: [], users: [] });
   }
 });
 
-// ================= QR =================
+/* ================= QR ================= */
 app.get('/qrcode/:id', async (req, res) => {
   const url = `${req.protocol}://${req.get('host')}/outil.html?id=${req.params.id}`;
   const qr = await QRCode.toDataURL(url);
@@ -155,21 +152,7 @@ app.get('/qrcode/:id', async (req, res) => {
   res.send(`<h2>QR ${req.params.id}</h2><img src="${qr}">`);
 });
 
-// DELETE TOOL
-app.get('/api/delete-tool', async (req, res) => {
-  const { id } = req.query;
-  await pool.query("DELETE FROM tools WHERE id=$1", [id]);
-  res.send("deleted");
-});
-
-// DELETE USER
-app.get('/api/delete-user', async (req, res) => {
-  const { nom } = req.query;
-  await pool.query("DELETE FROM users WHERE nom=$1", [nom]);
-  res.send("deleted");
-});
-
-// ================= START =================
+/* ================= START ================= */
 initDb().then(() => {
-  app.listen(3000, () => console.log("SERVEUR OK"));
+  app.listen(3000, () => console.log("Serveur OK"));
 });
