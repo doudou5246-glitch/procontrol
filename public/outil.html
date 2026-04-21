@@ -60,7 +60,7 @@ button {
 
 const id = new URLSearchParams(window.location.search).get("id");
 
-// SESSION (pas localStorage)
+// 🔥 SESSION (TEMPORAIRE)
 function saveSession(nom, pin) {
   sessionStorage.setItem("nom", nom);
   sessionStorage.setItem("pin", pin);
@@ -73,60 +73,52 @@ function getSession() {
   };
 }
 
-function logout() {
-  sessionStorage.clear();
-  alert("Déconnecté");
-}
-
-// charger users
-async function loadUsers() {
-  const res = await fetch('/api/admin');
-  const data = await res.json();
-
-  const select = document.getElementById("nom");
-  select.innerHTML = "";
-
-  data.users.forEach(u => {
-    const opt = document.createElement("option");
-    opt.value = u.nom;
-    opt.text = u.nom;
-    select.appendChild(opt);
-  });
-}
-
-// LOGIN (1 seule fois)
+// 🔥 LOGIN (UNE SEULE FOIS)
 function login() {
   const nom = document.getElementById("nom").value;
   const pin = document.getElementById("pin").value;
 
-  if (!nom || !pin) return alert("Nom + PIN requis");
+  if (!nom || !pin) {
+    alert("Nom + PIN requis");
+    return;
+  }
 
   saveSession(nom, pin);
-  alert("Connecté");
+  alert("✅ Connecté");
 }
 
-// PRENDRE
+// 🔥 PRENDRE
 async function take() {
   const { nom, pin } = getSession();
 
   if (!nom || !pin) {
-    return alert("Connecte-toi d'abord");
+    return alert("⚠️ Connecte-toi une fois");
   }
 
   const res = await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
   alert(await res.text());
 }
 
-// RENDRE
+// 🔥 RENDRE
 async function give() {
-  const { nom } = getSession();
+  const { nom, pin } = getSession();
 
-  if (!nom) return alert("Connecte-toi");
+  if (!nom || !pin) {
+    return alert("⚠️ Connecte-toi");
+  }
 
   const res = await fetch(`/api/return?id=${id}&nom=${nom}`);
   alert(await res.text());
 }
 
+// 🔥 LOGOUT
+function logout() {
+  sessionStorage.clear();
+  alert("Déconnecté");
+}
+
+</script>
+  
 loadUsers();
 
 </script>
