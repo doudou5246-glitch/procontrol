@@ -1,160 +1,63 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-
-body {
-  font-family: Arial;
-  background: #0f172a;
-  color: white;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
-}
-
-.card {
-  background:#1e293b;
-  padding:25px;
-  border-radius:12px;
-  width:90%;
-  max-width:400px;
-  text-align:center;
-}
-
-select, input {
-  width:100%;
-  padding:12px;
-  margin:10px 0;
-  border-radius:8px;
-  border:none;
-}
-
-button {
-  width:100%;
-  padding:15px;
-  margin:10px 0;
-  border:none;
-  border-radius:8px;
-  font-size:18px;
-}
-
-.take { background:red; color:white; }
-.return { background:green; color:white; }
-.create { background:#3b82f6; color:white; }
-
-</style>
-</head>
-
-<body>
-
-<div class="card">
-
-<h2>🔧 Outil</h2>
-
-<select id="nom"></select>
-<input id="pin" placeholder="PIN" type="password">
-
-<button class="create" onclick="createUser()">Créer compte</button>
-<button class="take" onclick="take()">PRENDRE</button>
-<button class="return" onclick="give()">RENDRE</button>
-
-</div>
-
 <script>
-
-const id = new URLSearchParams(window.location.search).get("id");
-
-// charger users
-async function loadUsers() {
-  try {
-    const res = await fetch('/api/admin');
-    const data = await res.json();
-
-    const select = document.getElementById("nom");
-    select.innerHTML = "";
-
-    data.users.forEach(u => {
-      const opt = document.createElement("option");
-      opt.value = u.nom;
-      opt.text = u.nom;
-      select.appendChild(opt);
-    });
-  } catch (e) {
-    console.log("erreur load users");
-  }
-}
-
-// créer user
-async function createUser() {
-  const nom = prompt("Nom ?");
-  const pin = prompt("PIN ?");
-
-  await fetch(`/api/add-user?nom=${nom}&pin=${pin}`);
-  loadUsers();
-}
-
-// prendre
-async function take() {
-  const nom = document.getElementById("nom").value;
-  const pin = document.getElementById("pin").value;
-
-  const res = await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
-  const txt = await res.text();
-<button onclick="prendre()">Prendre</button>
-  <script>
-function prendre() {
-  saveUser();
-
-  const nom = localStorage.getItem("user_nom");
-  const pin = localStorage.getItem("user_pin");
-  const id = new URLSearchParams(window.location.search).get("id");
-
-  fetch(`/api/prendre?id=${id}&nom=${nom}&pin=${pin}`)
-    .then(res => res.text())
-    .then(alert);
-}
-</script>
-  
-  alert(txt);
-}
-
-// rendre
-async function give() {
-  const res = await fetch(`/api/return?id=${id}`);
-  alert(await res.text());
-}
-
-  <script>
 function saveUser() {
   const nom = document.getElementById("nom").value;
   const pin = document.getElementById("pin").value;
 
+  if (!nom || !pin) {
+    alert("Entre ton nom et ton PIN");
+    return false;
+  }
+
   localStorage.setItem("user_nom", nom);
   localStorage.setItem("user_pin", pin);
+  return true;
 }
 
 function loadUser() {
   document.getElementById("nom").value = localStorage.getItem("user_nom") || "";
   document.getElementById("pin").value = localStorage.getItem("user_pin") || "";
 }
-<button onclick="logout()">Changer d'utilisateur</button>
 
-<script>
+async function prendre() {
+  if (!saveUser()) return;
+
+  const nom = localStorage.getItem("user_nom");
+  const pin = localStorage.getItem("user_pin");
+  const id = new URLSearchParams(window.location.search).get("id");
+
+  try {
+    const res = await fetch(`/api/prendre?id=${id}&nom=${nom}&pin=${pin}`);
+    const txt = await res.text();
+
+    alert(txt);
+  } catch (err) {
+    alert("Erreur serveur");
+    console.error(err);
+  }
+}
+
+async function rendre() {
+  if (!saveUser()) return;
+
+  const nom = localStorage.getItem("user_nom");
+  const pin = localStorage.getItem("user_pin");
+  const id = new URLSearchParams(window.location.search).get("id");
+
+  try {
+    const res = await fetch(`/api/rendre?id=${id}&nom=${nom}&pin=${pin}`);
+    const txt = await res.text();
+
+    alert(txt);
+  } catch (err) {
+    alert("Erreur serveur");
+    console.error(err);
+  }
+}
+
 function logout() {
   localStorage.clear();
   location.reload();
 }
-</script>
-  
-    
+
 window.onload = loadUser;
 </script>
-  
-loadUsers();
-
-</script>
-
-</body>
-</html>
