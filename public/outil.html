@@ -102,7 +102,20 @@ async function take() {
 
   const res = await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
   const txt = await res.text();
+<button onclick="prendre()">Prendre</button>
+  <script>
+function prendre() {
+  saveUser();
 
+  const nom = localStorage.getItem("user_nom");
+  const pin = localStorage.getItem("user_pin");
+  const id = new URLSearchParams(window.location.search).get("id");
+
+  fetch(`/api/prendre?id=${id}&nom=${nom}&pin=${pin}`)
+    .then(res => res.text())
+    .then(alert);
+}
+</script>
   alert(txt);
 }
 
