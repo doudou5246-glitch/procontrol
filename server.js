@@ -57,11 +57,11 @@ app.get("/api/add-user", async (req, res) => {
 
   if (!nom || !pin) return res.send("❌ champs requis");
 
-  await query(`
-    INSERT INTO users (nom, pin)
-    VALUES ($1,$2)
-    ON CONFLICT (nom) DO NOTHING
-  `, [nom, pin]);
+ await pool.query(`
+INSERT INTO users (nom, pin)
+VALUES ($1, $2)
+ON CONFLICT (nom) DO NOTHING
+`, [nom, pin]);
 
   res.send("✅ utilisateur OK");
 });
