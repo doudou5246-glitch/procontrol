@@ -1,63 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ProControl</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #0f172a;
+  color: white;
+  text-align: center;
+}
+
+input {
+  width: 250px;
+  padding: 12px;
+  margin: 10px;
+  border-radius: 8px;
+  border: none;
+}
+
+button {
+  width: 260px;
+  padding: 12px;
+  margin: 10px;
+  border-radius: 8px;
+  border: none;
+  font-size: 16px;
+}
+
+.prendre { background: #ef4444; color: white; }
+.rendre { background: #22c55e; color: white; }
+.logout { background: #64748b; color: white; }
+</style>
+</head>
+
+<body>
+
+<h1>🔧 ProControl</h1>
+
+<input id="nom" placeholder="Nom">
+<br>
+<input id="pin" placeholder="PIN" type="password">
+<br>
+<input id="outil" placeholder="ID outil">
+<br>
+
+<button class="prendre" onclick="prendre()">Prendre</button>
+<button class="rendre" onclick="rendre()">Rendre</button>
+<button class="logout" onclick="logout()">Changer utilisateur</button>
+
 <script>
+
+// charger utilisateur
+window.onload = function() {
+  document.getElementById("nom").value = localStorage.getItem("nom") || "";
+  document.getElementById("pin").value = localStorage.getItem("pin") || "";
+};
+
+// sauvegarde utilisateur
 function saveUser() {
   const nom = document.getElementById("nom").value;
   const pin = document.getElementById("pin").value;
 
   if (!nom || !pin) {
-    alert("Entre ton nom et ton PIN");
+    alert("Nom et PIN requis");
     return false;
   }
 
-  localStorage.setItem("user_nom", nom);
-  localStorage.setItem("user_pin", pin);
+  localStorage.setItem("nom", nom);
+  localStorage.setItem("pin", pin);
   return true;
 }
 
-function loadUser() {
-  document.getElementById("nom").value = localStorage.getItem("user_nom") || "";
-  document.getElementById("pin").value = localStorage.getItem("user_pin") || "";
-}
-
+// PRENDRE
 async function prendre() {
   if (!saveUser()) return;
 
-  const nom = localStorage.getItem("user_nom");
-  const pin = localStorage.getItem("user_pin");
+  const nom = localStorage.getItem("nom");
+  const pin = localStorage.getItem("pin");
   const id = new URLSearchParams(window.location.search).get("id");
 
   try {
     const res = await fetch(`/api/prendre?id=${id}&nom=${nom}&pin=${pin}`);
     const txt = await res.text();
-
     alert(txt);
-  } catch (err) {
+  } catch (e) {
     alert("Erreur serveur");
-    console.error(err);
+    console.error(e);
   }
 }
 
+// RENDRE
 async function rendre() {
   if (!saveUser()) return;
 
-  const nom = localStorage.getItem("user_nom");
-  const pin = localStorage.getItem("user_pin");
+  const nom = localStorage.getItem("nom");
+  const pin = localStorage.getItem("pin");
   const id = new URLSearchParams(window.location.search).get("id");
 
   try {
     const res = await fetch(`/api/rendre?id=${id}&nom=${nom}&pin=${pin}`);
     const txt = await res.text();
-
     alert(txt);
-  } catch (err) {
+  } catch (e) {
     alert("Erreur serveur");
-    console.error(err);
+    console.error(e);
   }
 }
 
+// LOGOUT
 function logout() {
   localStorage.clear();
   location.reload();
 }
 
-window.onload = loadUser;
 </script>
+
+</body>
+</html>
