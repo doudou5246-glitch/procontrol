@@ -1,73 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Admin ProControl</title>
-  <style>
-    body {
-      background:#0f172a;
-      color:white;
-      font-family:Arial;
-      padding:20px;
-    }
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin ProControl</title>
 
-    h1 {
-      text-align:center;
-    }
+<style>
+body {
+  background:#0f172a;
+  color:white;
+  font-family:Arial;
+  padding:20px;
+}
 
-    .card {
-      background:#1e293b;
-      padding:20px;
-      border-radius:10px;
-      margin-bottom:20px;
-    }
+h1 { text-align:center; }
 
-    input, button {
-      padding:10px;
-      margin:5px;
-      border:none;
-      border-radius:6px;
-    }
+.card {
+  background:#1e293b;
+  padding:20px;
+  margin:20px 0;
+  border-radius:12px;
+}
 
-    button {
-      background:#22c55e;
-      color:white;
-      cursor:pointer;
-    }
+input, button {
+  padding:10px;
+  border:none;
+  border-radius:6px;
+}
 
-    .danger {
-      background:#ef4444;
-    }
+button {
+  background:#22c55e;
+  color:white;
+  cursor:pointer;
+}
 
-    table {
-      width:100%;
-      margin-top:10px;
-    }
+.delete {
+  background:#ef4444;
+}
 
-    td {
-      padding:8px;
-      border-bottom:1px solid #334155;
-    }
-  </style>
+table {
+  width:100%;
+  margin-top:10px;
+}
+
+td {
+  padding:10px;
+  border-bottom:1px solid #334155;
+}
+</style>
 </head>
+
 <body>
 
 <h1>🛠️ Admin ProControl</h1>
 
 <div class="card">
-  <h2>Ajouter un outil</h2>
+  <h2>➕ Ajouter outil</h2>
   <input id="tool" placeholder="Nom outil">
   <button onclick="addTool()">Ajouter</button>
 </div>
 
 <div class="card">
-  <h2>Suivi matériel</h2>
+  <h2>📦 Matériel</h2>
   <button onclick="load()">Actualiser</button>
-
-  <table id="table"></table>
+  <table id="tools"></table>
 </div>
 
 <div class="card">
-  <h2>Historique</h2>
+  <h2>📜 Historique</h2>
   <div id="logs"></div>
 </div>
 
@@ -76,11 +75,11 @@ async function load() {
   const res = await fetch('/api/admin');
   const data = await res.json();
 
-  const table = document.getElementById("table");
-  table.innerHTML = "";
+  const tools = document.getElementById("tools");
+  tools.innerHTML = "";
 
   data.tools.forEach(t => {
-    table.innerHTML += `
+    tools.innerHTML += `
       <tr>
         <td>${t.nom}</td>
         <td>${t.en_cours ? "🔴 Pris" : "🟢 Libre"}</td>
@@ -99,7 +98,6 @@ async function load() {
 
 async function addTool() {
   const nom = document.getElementById("tool").value;
-
   await fetch(`/api/add-tool?nom=${nom}`);
   load();
 }
