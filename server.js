@@ -155,6 +155,20 @@ app.get('/qrcode/:id', async (req, res) => {
   res.send(`<h2>QR ${req.params.id}</h2><img src="${qr}">`);
 });
 
+// DELETE TOOL
+app.get('/api/delete-tool', async (req, res) => {
+  const { id } = req.query;
+  await pool.query("DELETE FROM tools WHERE id=$1", [id]);
+  res.send("deleted");
+});
+
+// DELETE USER
+app.get('/api/delete-user', async (req, res) => {
+  const { nom } = req.query;
+  await pool.query("DELETE FROM users WHERE nom=$1", [nom]);
+  res.send("deleted");
+});
+
 // ================= START =================
 initDb().then(() => {
   app.listen(3000, () => console.log("SERVEUR OK"));
