@@ -3,43 +3,46 @@
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+
 body {
   font-family: Arial;
   background: #0f172a;
   color: white;
-  text-align: center;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
 }
 
 .card {
-  background: #1e293b;
-  padding: 30px;
-  border-radius: 15px;
-  width: 90%;
-  max-width: 400px;
-  margin: auto;
-  margin-top: 40px;
+  background:#1e293b;
+  padding:25px;
+  border-radius:12px;
+  width:90%;
+  max-width:400px;
+  text-align:center;
 }
 
-input {
-  width: 100%;
-  padding: 12px;
-  margin: 10px 0;
-  border-radius: 8px;
-  border: none;
+select, input {
+  width:100%;
+  padding:12px;
+  margin:10px 0;
+  border-radius:8px;
+  border:none;
 }
 
 button {
-  width: 100%;
-  padding: 12px;
-  margin: 10px 0;
-  border-radius: 8px;
-  border: none;
-  font-size: 16px;
+  width:100%;
+  padding:15px;
+  margin:10px 0;
+  border:none;
+  border-radius:8px;
+  font-size:18px;
 }
 
-.take { background: red; color: white; }
-.return { background: green; color: white; }
-.create { background: #3b82f6; color: white; }
+.take { background:red; color:white; }
+.return { background:green; color:white; }
+.create { background:#3b82f6; color:white; }
 
 </style>
 </head>
@@ -47,14 +50,15 @@ button {
 <body>
 
 <div class="card">
+
 <h2>🔧 Outil</h2>
 
 <select id="nom"></select>
-<input id="pin" placeholder="PIN">
+<input id="pin" placeholder="PIN" type="password">
 
 <button class="create" onclick="createUser()">Créer compte</button>
-<button class="take" onclick="take()">Prendre</button>
-<button class="return" onclick="give()">Rendre</button>
+<button class="take" onclick="take()">PRENDRE</button>
+<button class="return" onclick="give()">RENDRE</button>
 
 </div>
 
@@ -62,21 +66,27 @@ button {
 
 const id = new URLSearchParams(window.location.search).get("id");
 
+// charger users
 async function loadUsers() {
-  const res = await fetch('/api/admin');
-  const data = await res.json();
+  try {
+    const res = await fetch('/api/admin');
+    const data = await res.json();
 
-  const select = document.getElementById("nom");
-  select.innerHTML = "";
+    const select = document.getElementById("nom");
+    select.innerHTML = "";
 
-  data.users.forEach(u => {
-    const opt = document.createElement("option");
-    opt.value = u.nom;
-    opt.text = u.nom;
-    select.appendChild(opt);
-  });
+    data.users.forEach(u => {
+      const opt = document.createElement("option");
+      opt.value = u.nom;
+      opt.text = u.nom;
+      select.appendChild(opt);
+    });
+  } catch (e) {
+    console.log("erreur load users");
+  }
 }
 
+// créer user
 async function createUser() {
   const nom = prompt("Nom ?");
   const pin = prompt("PIN ?");
@@ -85,52 +95,23 @@ async function createUser() {
   loadUsers();
 }
 
+// prendre
 async function take() {
   const nom = document.getElementById("nom").value;
   const pin = document.getElementById("pin").value;
-
-  await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
-  alert("Pris !");
-}
-
-async function give() {
-  await fetch(`/api/return?id=${id}`);
-  alert("Rendu !");
-}
-
-  <script>
-const id = new URLSearchParams(window.location.search).get("id");
-
-// 🔥 charger utilisateur sauvegardé
-let savedUser = localStorage.getItem("user");
-if (savedUser) {
-  document.getElementById("nom").value = savedUser;
-}
-
-// 🔥 sauvegarder user
-function saveUser(nom) {
-  localStorage.setItem("user", nom);
-}
-
-async function take() {
-  const nom = document.getElementById("nom").value;
-  const pin = document.getElementById("pin").value;
-
-  saveUser(nom);
 
   const res = await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
-  alert(await res.text());
+  const txt = await res.text();
+
+  alert(txt);
 }
 
+// rendre
 async function give() {
-  const nom = document.getElementById("nom").value;
-  const pin = document.getElementById("pin").value;
-
   const res = await fetch(`/api/return?id=${id}`);
   alert(await res.text());
 }
-  
-</script>
+
 loadUsers();
 
 </script>
