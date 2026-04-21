@@ -67,6 +67,7 @@ app.get('/api/add-tool', async (req, res) => {
 app.get('/api/take', async (req, res) => {
   const { id, nom, pin } = req.query;
 
+  // Vérif user
   const user = await pool.query(
     'SELECT * FROM users WHERE nom=$1 AND pin=$2',
     [nom, pin]
@@ -80,15 +81,25 @@ app.get('/api/take', async (req, res) => {
     `, [nom, pin]);
   }
 
+  // 🔥 NOUVEAU : vérifier si outil déjà pris
+  const tool = await pool.query(
+    'SELECT * FROM tools WHERE id=$1',
+    [id]
+  );
+
+  if (tool.rows[0].en_cours) {
+    return res.send("❌ Déjà pris par " + tool.rows[0].emprunteur);
+  }
+
+  // prise
   await pool.query(`
     UPDATE tools
     SET emprunteur=$1, en_cours=true, date_sortie=NOW()
     WHERE id=$2
   `, [nom, id]);
 
-  res.send("✅ pris");
+  res.send("✅ Pris");
 });
-
 /* ================= RETURN ================= */
 
 app.get('/api/return', async (req, res) => {
