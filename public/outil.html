@@ -2,85 +2,104 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ProControl</title>
-
 <style>
 body {
-  background:#0f172a;
-  color:white;
-  font-family:Arial;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  height:100vh;
+  font-family: Arial;
+  background: #0f172a;
+  color: white;
+  text-align: center;
 }
 
-.container {
-  width:90%;
-  max-width:400px;
-  text-align:center;
+.card {
+  background: #1e293b;
+  padding: 30px;
+  border-radius: 15px;
+  width: 90%;
+  max-width: 400px;
+  margin: auto;
+  margin-top: 40px;
 }
 
 input {
-  width:100%;
-  padding:15px;
-  margin:10px 0;
-  border-radius:10px;
-  border:none;
-  font-size:18px;
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 8px;
+  border: none;
 }
 
 button {
-  width:100%;
-  padding:18px;
-  margin:10px 0;
-  font-size:20px;
-  border:none;
-  border-radius:10px;
-  color:white;
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 8px;
+  border: none;
+  font-size: 16px;
 }
 
-.take { background:#ef4444; }
-.return { background:#22c55e; }
+.take { background: red; color: white; }
+.return { background: green; color: white; }
+.create { background: #3b82f6; color: white; }
 
-h1 {
-  margin-bottom:20px;
-}
 </style>
 </head>
 
 <body>
 
-<div class="container">
-  <h1>🔧 Outil</h1>
+<div class="card">
+<h2>🔧 Outil</h2>
 
-  <input id="nom" placeholder="Votre prénom">
-  <input id="pin" placeholder="Code PIN" type="password">
+<select id="nom"></select>
+<input id="pin" placeholder="PIN">
 
-  <button class="take" onclick="prendre()">🔴 PRENDRE</button>
-  <button class="return" onclick="rendre()">🟢 RENDRE</button>
+<button class="create" onclick="createUser()">Créer compte</button>
+<button class="take" onclick="take()">Prendre</button>
+<button class="return" onclick="give()">Rendre</button>
+
 </div>
 
 <script>
+
 const id = new URLSearchParams(window.location.search).get("id");
 
-function prendre() {
+async function loadUsers() {
+  const res = await fetch('/api/admin');
+  const data = await res.json();
+
+  const select = document.getElementById("nom");
+  select.innerHTML = "";
+
+  data.users.forEach(u => {
+    const opt = document.createElement("option");
+    opt.value = u.nom;
+    opt.text = u.nom;
+    select.appendChild(opt);
+  });
+}
+
+async function createUser() {
+  const nom = prompt("Nom ?");
+  const pin = prompt("PIN ?");
+
+  await fetch(`/api/add-user?nom=${nom}&pin=${pin}`);
+  loadUsers();
+}
+
+async function take() {
   const nom = document.getElementById("nom").value;
   const pin = document.getElementById("pin").value;
 
-  fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`)
-    .then(r => r.text())
-    .then(alert);
+  await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
+  alert("Pris !");
 }
 
-function rendre() {
-  const nom = document.getElementById("nom").value;
-  const pin = document.getElementById("pin").value;
-
-  fetch(`/api/return?id=${id}&nom=${nom}&pin=${pin}`)
-    .then(r => r.text())
-    .then(alert);
+async function give() {
+  await fetch(`/api/return?id=${id}`);
+  alert("Rendu !");
 }
+
+loadUsers();
+
 </script>
 
 </body>
