@@ -17,17 +17,22 @@ h1 { text-align:center; }
 .card {
   background:#1e293b;
   padding:20px;
-  margin:20px 0;
+  margin:20px auto;
   border-radius:12px;
+  max-width:800px;
 }
 
-input, button {
+input {
   padding:10px;
-  border:none;
+  margin:5px;
   border-radius:6px;
+  border:none;
 }
 
 button {
+  padding:10px 15px;
+  border:none;
+  border-radius:6px;
   background:#22c55e;
   color:white;
   cursor:pointer;
@@ -42,19 +47,20 @@ table {
   margin-top:10px;
 }
 
-td {
+td, th {
   padding:10px;
   border-bottom:1px solid #334155;
+  text-align:left;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🛠️ Admin ProControl</h1>
+<h1>🛠️ Dashboard ProControl</h1>
 
 <div class="card">
-  <h2>➕ Ajouter outil</h2>
+  <h2>➕ Ajouter un outil</h2>
   <input id="tool" placeholder="Nom outil">
   <button onclick="addTool()">Ajouter</button>
 </div>
@@ -62,12 +68,30 @@ td {
 <div class="card">
   <h2>📦 Matériel</h2>
   <button onclick="load()">Actualiser</button>
-  <table id="tools"></table>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Outil</th>
+        <th>Statut</th>
+        <th>Utilisateur</th>
+      </tr>
+    </thead>
+    <tbody id="tools"></tbody>
+  </table>
 </div>
 
 <div class="card">
-  <h2>📜 Historique</h2>
-  <div id="logs"></div>
+  <h2>👤 Utilisateurs</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Nom</th>
+        <th>PIN</th>
+      </tr>
+    </thead>
+    <tbody id="users"></tbody>
+  </table>
 </div>
 
 <script>
@@ -88,11 +112,16 @@ async function load() {
     `;
   });
 
-  const logs = document.getElementById("logs");
-  logs.innerHTML = "";
+  const users = document.getElementById("users");
+  users.innerHTML = "";
 
-  data.mouvements.forEach(m => {
-    logs.innerHTML += `<p>${m.utilisateur} → ${m.action}</p>`;
+  data.users.forEach(u => {
+    users.innerHTML += `
+      <tr>
+        <td>${u.nom}</td>
+        <td>${u.pin}</td>
+      </tr>
+    `;
   });
 }
 
