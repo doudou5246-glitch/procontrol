@@ -2,561 +2,379 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin ProControl</title>
+
 <style>
-  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#0f172a;color:#fff}
-  .wrap{max-width:1100px;margin:0 auto;padding:20px}
-  .card{background:#1e293b;border-radius:16px;padding:20px;margin:16px 0;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-  h1,h2{margin:0 0 12px}
-  input,button{padding:12px;border:none;border-radius:12px;font-size:15px;box-sizing:border-box}
-  input{background:#fff;color:#111827}
-  button{cursor:pointer;font-weight:700}
-  .primary{background:#2563eb;color:#fff}
-  .danger{background:#dc2626;color:#fff}
-  .success{background:#16a34a;color:#fff}
-  .secondary{background:#475569;color:#fff}
-  .row{display:grid;grid-template-columns:1fr 1fr auto;gap:10px}
-  table{width:100%;border-collapse:collapse}
-  th,td{padding:10px;border-bottom:1px solid #334155;text-align:left}
-  .pill{padding:4px 10px;border-radius:999px;font-weight:700;font-size:13px}
-  .red{background:#7f1d1d}
-  .green{background:#14532d}
-  .muted{color:#cbd5e1}
+*{margin:0;padding:0;box-sizing:border-box}
+body{
+font-family:Arial,Helvetica,sans-serif;
+background:#07142c;
+color:#fff;
+padding:30px;
+}
+.wrap{
+max-width:1400px;
+margin:auto;
+}
+.card{
+background:#142544;
+border-radius:18px;
+padding:25px;
+margin-bottom:25px;
+box-shadow:0 15px 40px rgba(0,0,0,.35);
+}
+h1{
+font-size:42px;
+margin-bottom:20px;
+}
+h2{
+font-size:30px;
+margin-bottom:20px;
+}
+.grid4{
+display:grid;
+grid-template-columns:repeat(4,1fr);
+gap:15px;
+margin-bottom:25px;
+}
+.stat{
+background:#1c335e;
+padding:20px;
+border-radius:15px;
+text-align:center;
+font-size:22px;
+font-weight:bold;
+}
+input{
+width:100%;
+padding:15px;
+border:none;
+border-radius:12px;
+font-size:18px;
+margin-bottom:12px;
+}
+.row{
+display:grid;
+grid-template-columns:1fr 1fr auto;
+gap:10px;
+}
+button{
+border:none;
+padding:13px 18px;
+border-radius:12px;
+font-size:16px;
+font-weight:bold;
+cursor:pointer;
+}
+.blue{background:#2d6cff;color:#fff}
+.green{background:#18b64b;color:#fff}
+.red{background:#e53935;color:#fff}
+.gray{background:#4e5f80;color:#fff}
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px;
+}
+th,td{
+padding:12px;
+border-bottom:1px solid rgba(255,255,255,.08);
+text-align:left;
+font-size:16px;
+}
+th{color:#8fb3ff}
+.small{
+font-size:14px;
+opacity:.8;
+}
+.actions button{
+margin-right:6px;
+margin-bottom:5px;
+}
+@media(max-width:1000px){
+.grid4{grid-template-columns:1fr 1fr}
+.row{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
+
 <div class="wrap">
-  <div class="card">
-    <h1>Admin ProControl</h1>
-    <div class="row">
-      <input id="adminUser" placeholder="Identifiant admin" value="admin">
-      <input id="adminPass" type="password" placeholder="Mot de passe admin">
-      <button class="primary" onclick="loginAdmin()">Connexion admin</button>
-    </div>
-    <div class="row" style="grid-template-columns:1fr auto;">
-      <div id="adminInfo" class="muted"></div>
-      <button class="secondary" onclick="logoutAdmin()">Déconnexion</button>
-    </div>
-  </div>
 
-  <div class="card">
-    <h2>Ajouter un outil</h2>
-    <div class="row">
-      <input id="toolName" placeholder="Nom de l'outil">
-      <button class="success" onclick="addTool()">Ajouter</button>
-    </div>
-    <div id="toolAddResult" class="muted"></div>
-  </div>
+<div class="card">
+<h1>🔐 Admin ProControl</h1>
 
-  <div class="card">
-    <h2>Ajouter un utilisateur</h2>
-    <div class="row">
-      <input id="userName" placeholder="Prénom">
-      <input id="userPin" placeholder="PIN">
-      <button class="success" onclick="addUser()">Ajouter</button>
-    </div>
-  </div>
+<div class="row">
+<input id="adminUser" placeholder="Utilisateur admin" value="admin">
+<input id="adminPass" placeholder="Mot de passe admin" type="password">
+<button class="blue" onclick="login()">Connexion</button>
+</div>
 
-  <div class="card">
-    <h2>Outils</h2>
-    <button class="primary" onclick="loadAdmin()">Actualiser</button>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Outil</th>
-          <th>Statut</th>
-          <th>Utilisateur</th>
-          <th>Date sortie</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="toolsBody"></tbody>
-    </table>
-  </div>
+<div style="margin-top:10px">
+<button class="gray" onclick="logout()">Déconnexion</button>
+<button class="blue" onclick="loadAll()">Actualiser</button>
+</div>
+</div>
 
-  <div class="card">
-    <h2>Utilisateurs</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Nom</th>
-          <th>PIN</th>
-          <th>Créé le</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="usersBody"></tbody>
-    </table>
-  </div>
+<div class="grid4">
+<div class="stat">Outils<br><span id="s1">0</span></div>
+<div class="stat">Pris<br><span id="s2">0</span></div>
+<div class="stat">Libres<br><span id="s3">0</span></div>
+<div class="stat">Utilisateurs<br><span id="s4">0</span></div>
+</div>
 
-  <div class="card">
-    <h2>Historique récent</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Utilisateur</th>
-          <th>Action</th>
-          <th>Outil</th>
-        </tr>
-      </thead>
-      <tbody id="logsBody"></tbody>
-    </table>
-  </div>
+<div class="card">
+<h2>🧰 Ajouter un outil</h2>
+<div class="row">
+<input id="toolName" placeholder="Nom du matériel">
+<div></div>
+<button class="green" onclick="addTool()">Ajouter</button>
+</div>
+</div>
+
+<div class="card">
+<h2>👤 Ajouter utilisateur</h2>
+<div class="row">
+<input id="userName" placeholder="Prénom">
+<input id="userPin" placeholder="PIN">
+<button class="green" onclick="addUser()">Ajouter</button>
+</div>
+</div>
+
+<div class="card">
+<h2>🧰 Liste matériel</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Nom</th>
+<th>Statut</th>
+<th>Utilisateur</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="tools"></tbody>
+</table>
+</div>
+
+<div class="card">
+<h2>👤 Utilisateurs</h2>
+<table>
+<thead>
+<tr>
+<th>Nom</th>
+<th>PIN</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="users"></tbody>
+</table>
+</div>
+
+<div class="card">
+<h2>📜 Historique</h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Utilisateur</th>
+<th>Action</th>
+<th>Outil</th>
+</tr>
+</thead>
+<tbody id="logs"></tbody>
+</table>
+</div>
+
 </div>
 
 <script>
-function setAdminSession(user, pass) {
-  sessionStorage.setItem('admin_user', user);
-  sessionStorage.setItem('admin_pass', pass);
-  renderAdminInfo();
+function saveSession(){
+sessionStorage.setItem("auser",document.getElementById("adminUser").value);
+sessionStorage.setItem("apass",document.getElementById("adminPass").value);
 }
 
-function getAdminSession() {
-  return {
-    user: sessionStorage.getItem('admin_user') || '',
-    pass: sessionStorage.getItem('admin_pass') || ''
-  };
-}
-
-function renderAdminInfo() {
-  const { user, pass } = getAdminSession();
-  document.getElementById('adminInfo').textContent =
-    user && pass ? `Session admin active : ${user}` : 'Aucune session admin';
-}
-
-async function api(url) {
-  const res = await fetch(url);
-  const text = await res.text();
-
-  let json = null;
-  try { json = JSON.parse(text); } catch (_) {}
-
-  if (!res.ok) {
-    throw new Error(json?.error || text || 'Erreur');
-  }
-
-  return json ?? text;
-}
-
-async function loginAdmin() {
-  const user = document.getElementById('adminUser').value.trim();
-  const pass = document.getElementById('adminPass').value.trim();
-
-  if (!user || !pass) {
-    return alert('Identifiant + mot de passe requis');
-  }
-
-  setAdminSession(user, pass);
-  await loadAdmin();
-}
-
-function logoutAdmin() {
-  sessionStorage.removeItem('admin_user');
-  sessionStorage.removeItem('admin_pass');
-  renderAdminInfo();
-  document.getElementById('toolsBody').innerHTML = '';
-  document.getElementById('usersBody').innerHTML = '';
-  document.getElementById('logsBody').innerHTML = '';
-}
-
-async function loadAdmin() {
-  const { user, pass } = getAdminSession();
-
-  if (!user || !pass) {
-    return alert('Connecte-toi en admin');
-  }
-
-  try {
-    const data = await api(`/api/admin?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`);
-
-    const toolsBody = document.getElementById('toolsBody');
-    toolsBody.innerHTML = '';
-    data.tools.forEach(t => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${t.id}</td>
-        <td>${t.nom}</td>
-        <td>${t.en_cours ? '<span class="pill red">Pris</span>' : '<span class="pill green">Libre</span>'}</td>
-        <td>${t.emprunteur || '-'}</td>
-        <td>${t.date_sortie || '-'}</td>
-        <td>
-          <button class="secondary" onclick="openQr(${t.id})">QR</button>
-          <button class="danger" onclick="deleteTool(${t.id})">Supprimer</button>
-        </td>
-      `;
-      toolsBody.appendChild(tr);
-    });
-
-    const usersBody = document.getElementById('usersBody');
-    usersBody.innerHTML = '';
-    data.users.forEach(u => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${u.nom}</td>
-        <td>${u.pin}</td>
-        <td>${u.created_at || '-'}</td>
-        <td>
-          <button class="secondary" onclick="resetPin('${u.nom.replace(/'/g, "\\'")}')">Changer PIN</button>
-          <button class="danger" onclick="deleteUser('${u.nom.replace(/'/g, "\\'")}')">Supprimer</button>
-        </td>
-      `;
-      usersBody.appendChild(tr);
-    });
-
-    const logsBody = document.getElementById('logsBody');
-    logsBody.innerHTML = '';
-    data.mouvements.forEach(m => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${m.date}</td>
-        <td>${m.utilisateur}</td>
-        <td>${m.action}</td>
-        <td>${m.tool_nom || ('#' + (m.tool_id || '-'))}</td>
-      `;
-      logsBody.appendChild(tr);
-    });
-
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-async function addTool() {
-  const { user, pass } = getAdminSession();
-  const nom = document.getElementById('toolName').value.trim();
-
-  if (!user || !pass) return alert('Connecte-toi en admin');
-  if (!nom) return alert("Nom de l'outil requis");
-
-  try {
-    const result = await api(`/api/add-tool?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}&nom=${encodeURIComponent(nom)}`);
-    document.getElementById('toolAddResult').innerHTML =
-      `Outil ajouté. <a href="${result.qrUrl}" target="_blank" style="color:#93c5fd">Ouvrir le QR</a>`;
-    document.getElementById('toolName').value = '';
-    await loadAdmin();
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-async function addUser() {
-  const { user, pass } = getAdminSession();
-  const nom = document.getElementById('userName').value.trim();
-  const pin = document.getElementById('userPin').value.trim();
-
-  if (!user || !pass) return alert('Connecte-toi en admin');
-  if (!nom || !pin) return alert('Nom et PIN requis');
-
-  try {
-    const result = await api(`/api/add-user-admin?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}&nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
-    alert(result);
-    document.getElementById('userName').value = '';
-    document.getElementById('userPin').value = '';
-    await loadAdmin();
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-function openQr(id) {
-  window.open(`/qrcode/${id}`, '_blank');
-}
-
-async function deleteTool(id) {
-  const { user, pass } = getAdminSession();
-  if (!confirm('Supprimer cet outil ?')) return;
-
-  try {
-    const result = await api(`/api/delete-tool?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}&id=${id}`);
-    alert(result);
-    await loadAdmin();
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-async function deleteUser(nom) {
-  const { user, pass } = getAdminSession();
-  if (!confirm(`Supprimer ${nom} ?`)) return;
-
-  try {
-    const result = await api(`/api/delete-user?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}&nom=${encodeURIComponent(nom)}`);
-    alert(result);
-    await loadAdmin();
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-async function resetPin(nom) {
-  const { user, pass } = getAdminSession();
-  const pin = prompt(`Nouveau PIN pour ${nom} ?`);
-  if (!pin) return;
-
-  try {
-    const result = await api(`/api/update-user-pin?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}&nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
-    alert(result);
-    await loadAdmin();
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-renderAdminInfo();
-</script>
-   <script>
-/* ==========================================================
-   ADMIN PROCONTROL - VERSION PRO FINALE
-   Colle ce script tout en bas de public/admin.html
-   remplace l'ancien <script>...</script>
-========================================================== */
-
-const API = {
-  async get(url){
-    const r = await fetch(url);
-    return await r.json();
-  }
-};
-
-function creds(){
-  return {
-    user: sessionStorage.getItem("admin_user") || "",
-    pass: sessionStorage.getItem("admin_pass") || ""
-  };
-}
-
-function saveLogin(){
-  const user = document.getElementById("adminUser").value.trim();
-  const pass = document.getElementById("adminPass").value.trim();
-
-  sessionStorage.setItem("admin_user", user);
-  sessionStorage.setItem("admin_pass", pass);
-
-  loadDashboard();
+function login(){
+saveSession();
+loadAll();
 }
 
 function logout(){
-  sessionStorage.clear();
-  location.reload();
+sessionStorage.clear();
+location.reload();
 }
 
-/* ==========================
-   CHARGEMENT GLOBAL
-========================== */
-async function loadDashboard(){
-
-  const c = creds();
-
-  const data = await API.get(`/api/admin?user=${c.user}&pass=${c.pass}`);
-
-  renderStats(data);
-  renderTools(data.tools || []);
-  renderUsers(data.users || []);
-  renderMoves(data.mouvements || []);
+function auth(){
+return {
+u:sessionStorage.getItem("auser") || "admin",
+p:sessionStorage.getItem("apass") || ""
+};
 }
 
-/* ==========================
-   STATS
-========================== */
-function renderStats(data){
+async function loadAll(){
 
-  const tools = data.tools || [];
-  const users = data.users || [];
+const a = auth();
 
-  const total = tools.length;
-  const pris = tools.filter(t=>t.en_cours).length;
-  const libre = total - pris;
+const r = await fetch(`/api/admin?user=${a.u}&pass=${a.p}`);
+const data = await r.json();
 
-  if(document.getElementById("statTotal"))
-    document.getElementById("statTotal").innerText = total;
-
-  if(document.getElementById("statPris"))
-    document.getElementById("statPris").innerText = pris;
-
-  if(document.getElementById("statLibre"))
-    document.getElementById("statLibre").innerText = libre;
-
-  if(document.getElementById("statUsers"))
-    document.getElementById("statUsers").innerText = users.length;
+renderStats(data);
+renderTools(data.tools || []);
+renderUsers(data.users || []);
+renderLogs(data.mouvements || []);
 }
 
-/* ==========================
-   OUTILS
-========================== */
+function renderStats(d){
+
+const t = d.tools || [];
+const u = d.users || [];
+
+document.getElementById("s1").innerText = t.length;
+document.getElementById("s2").innerText = t.filter(x=>x.en_cours).length;
+document.getElementById("s3").innerText = t.filter(x=>!x.en_cours).length;
+document.getElementById("s4").innerText = u.length;
+}
+
 function renderTools(list){
 
-  const zone = document.getElementById("toolsBody");
-  if(!zone) return;
+let html="";
 
-  let html = "";
+list.forEach(x=>{
 
-  list.forEach(t=>{
+html+=`
+<tr>
+<td>${x.id}</td>
+<td>${x.nom}</td>
+<td>${x.en_cours ? "🔴 Pris" : "🟢 Libre"}</td>
+<td>${x.emprunteur || "-"}</td>
+<td class="actions">
+<button class="blue" onclick="window.open('/qrcode/${x.id}','_blank')">QR</button>
+<button class="red" onclick="delTool(${x.id})">Supprimer</button>
+</td>
+</tr>
+`;
 
-    html += `
-      <tr>
-        <td>${t.id}</td>
-        <td>${t.nom}</td>
-        <td>${t.en_cours ? '🔴 Pris' : '🟢 Libre'}</td>
-        <td>${t.emprunteur || '-'}</td>
-        <td>${t.date_sortie || '-'}</td>
-        <td style="display:flex;gap:8px;flex-wrap:wrap">
-          <button onclick="showQR(${t.id})">QR</button>
-          <button onclick="deleteTool(${t.id})">Supprimer</button>
-        </td>
-      </tr>
-    `;
-  });
+});
 
-  zone.innerHTML = html || `
-    <tr><td colspan="6">Aucun outil</td></tr>
-  `;
+document.getElementById("tools").innerHTML = html;
+}
+
+function renderUsers(list){
+
+let html="";
+
+list.forEach(x=>{
+
+html+=`
+<tr>
+<td>${x.nom}</td>
+<td>${x.pin}</td>
+<td class="actions">
+<button class="blue" onclick="changePin('${x.nom}')">PIN</button>
+<button class="red" onclick="delUser('${x.nom}')">Supprimer</button>
+</td>
+</tr>
+`;
+
+});
+
+document.getElementById("users").innerHTML = html;
+}
+
+function renderLogs(list){
+
+let html="";
+
+list.reverse().slice(0,50).forEach(x=>{
+
+html+=`
+<tr>
+<td>${x.date || "-"}</td>
+<td>${x.utilisateur || "-"}</td>
+<td>${x.action || "-"}</td>
+<td>${x.tool_nom || "-"}</td>
+</tr>
+`;
+
+});
+
+document.getElementById("logs").innerHTML = html;
 }
 
 async function addTool(){
 
-  const nom = document.getElementById("toolName").value.trim();
-  if(!nom) return alert("Nom outil ?");
+const nom = document.getElementById("toolName").value;
+if(!nom) return;
 
-  const c = creds();
+const a = auth();
 
-  await API.get(`/api/add-tool?user=${c.user}&pass=${c.pass}&nom=${encodeURIComponent(nom)}`);
+await fetch(`/api/add-tool?user=${a.u}&pass=${a.p}&nom=${encodeURIComponent(nom)}`);
 
-  document.getElementById("toolName").value = "";
-
-  loadDashboard();
-}
-
-async function deleteTool(id){
-
-  if(!confirm("Supprimer outil ?")) return;
-
-  const c = creds();
-
-  await API.get(`/api/delete-tool?user=${c.user}&pass=${c.pass}&id=${id}`);
-
-  loadDashboard();
-}
-
-function showQR(id){
-  window.open(`/qrcode/${id}`,'_blank');
-}
-
-/* ==========================
-   USERS
-========================== */
-function renderUsers(list){
-
-  const zone = document.getElementById("usersBody");
-  if(!zone) return;
-
-  let html = "";
-
-  list.forEach(u=>{
-
-    html += `
-      <tr>
-        <td>${u.nom}</td>
-        <td>${u.pin}</td>
-        <td>${u.created_at || '-'}</td>
-        <td style="display:flex;gap:8px;flex-wrap:wrap">
-          <button onclick="resetPin('${u.nom}')">PIN</button>
-          <button onclick="deleteUser('${u.nom}')">Supprimer</button>
-        </td>
-      </tr>
-    `;
-  });
-
-  zone.innerHTML = html || `
-    <tr><td colspan="4">Aucun utilisateur</td></tr>
-  `;
+document.getElementById("toolName").value="";
+loadAll();
 }
 
 async function addUser(){
 
-  const nom = document.getElementById("userName").value.trim();
-  const pin = document.getElementById("userPin").value.trim();
+const nom = document.getElementById("userName").value;
+const pin = document.getElementById("userPin").value;
 
-  if(!nom || !pin) return alert("Nom + PIN");
+if(!nom || !pin) return;
 
-  const c = creds();
+const a = auth();
 
-  await API.get(`/api/add-user-admin?user=${c.user}&pass=${c.pass}&nom=${encodeURIComponent(nom)}&pin=${pin}`);
+await fetch(`/api/add-user-admin?user=${a.u}&pass=${a.p}&nom=${encodeURIComponent(nom)}&pin=${pin}`);
 
-  document.getElementById("userName").value="";
-  document.getElementById("userPin").value="";
+document.getElementById("userName").value="";
+document.getElementById("userPin").value="";
 
-  loadDashboard();
+loadAll();
 }
 
-async function deleteUser(nom){
+async function delTool(id){
 
-  if(!confirm("Supprimer utilisateur ?")) return;
+if(!confirm("Supprimer ?")) return;
 
-  const c = creds();
+const a = auth();
 
-  await API.get(`/api/delete-user?user=${c.user}&pass=${c.pass}&nom=${encodeURIComponent(nom)}`);
+await fetch(`/api/delete-tool?user=${a.u}&pass=${a.p}&id=${id}`);
 
-  loadDashboard();
+loadAll();
 }
 
-async function resetPin(nom){
+async function delUser(nom){
 
-  const pin = prompt("Nouveau PIN pour "+nom);
-  if(!pin) return;
+if(!confirm("Supprimer utilisateur ?")) return;
 
-  const c = creds();
+const a = auth();
 
-  await API.get(`/api/reset-pin?user=${c.user}&pass=${c.pass}&nom=${encodeURIComponent(nom)}&pin=${pin}`);
+await fetch(`/api/delete-user?user=${a.u}&pass=${a.p}&nom=${encodeURIComponent(nom)}`);
 
-  loadDashboard();
+loadAll();
 }
 
-/* ==========================
-   MOUVEMENTS
-========================== */
-function renderMoves(list){
+async function changePin(nom){
 
-  const zone = document.getElementById("logsBody");
-  if(!zone) return;
+const pin = prompt("Nouveau PIN ?");
+if(!pin) return;
 
-  let html = "";
+const a = auth();
 
-  list.reverse().slice(0,50).forEach(m=>{
+await fetch(`/api/reset-pin?user=${a.u}&pass=${a.p}&nom=${encodeURIComponent(nom)}&pin=${pin}`);
 
-    html += `
-      <tr>
-        <td>${m.date || '-'}</td>
-        <td>${m.utilisateur || '-'}</td>
-        <td>${m.action || '-'}</td>
-        <td>${m.tool_nom || '-'}</td>
-      </tr>
-    `;
-  });
-
-  zone.innerHTML = html || `
-    <tr><td colspan="4">Aucun mouvement</td></tr>
-  `;
+loadAll();
 }
 
-/* ==========================
-   AUTO REFRESH
-========================== */
+window.onload=()=>{
+document.getElementById("adminUser").value=sessionStorage.getItem("auser") || "admin";
+document.getElementById("adminPass").value=sessionStorage.getItem("apass") || "";
+if(sessionStorage.getItem("auser")) loadAll();
+}
+
 setInterval(()=>{
-  if(sessionStorage.getItem("admin_user")) loadDashboard();
+if(sessionStorage.getItem("auser")) loadAll();
 },5000);
-
-/* ==========================
-   LOAD
-========================== */
-window.onload = ()=>{
-
-  if(sessionStorage.getItem("admin_user")){
-    loadDashboard();
-  }
-};
 </script>
+
 </body>
 </html>
