@@ -1,4 +1,313 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin ProControl</title>
+<style>
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#0f172a;color:#fff}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px}
+  .card{background:#1e293b;border-radius:16px;padding:20px;margin:16px 0;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  h1,h2{margin:0 0 12px}
+  input,button{padding:12px;border:none;border-radius:12px;font-size:15px;box-sizing:border-box}
+  input{background:#fff;color:#111827}
+  button{cursor:pointer;font-weight:700}
+  .primary{background:#2563eb;color:#fff}
+  .danger{background:#dc2626;color:#fff}
+  .success{background:#16a34a;color:#fff}
+  .secondary{background:#475569;color:#fff}
+  .row{display:grid;grid-template-columns:1fr 1fr auto;gap:10px}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px;border-bottom:1px solid #334155;text-align:left}
+  .pill{padding:4px 10px;border-radius:999px;font-weight:700;font-size:13px}
+  .red{background:#7f1d1d}
+  .green{background:#14532d}
+  .muted{color:#cbd5e1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>Admin ProControl</h1>
+    <div class="row">
+      <input id="adminUser" placeholder="Identifiant admin" value="admin">
+      <input id="adminPass" type="password" placeholder="Mot de passe admin">
+      <button class="primary" onclick="loginAdmin()">Connexion admin</button>
+    </div>
+    <div class="row" style="grid-template-columns:1fr auto;">
+      <div id="adminInfo" class="muted"></div>
+      <button class="secondary" onclick="logoutAdmin()">Déconnexion</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Ajouter un outil</h2>
+    <div class="row">
+      <input id="toolName" placeholder="Nom de l'outil">
+      <button class="success" onclick="addTool()">Ajouter</button>
+    </div>
+    <div id="toolAddResult" class="muted"></div>
+  </div>
+
+  <div class="card">
+    <h2>Ajouter un utilisateur</h2>
+    <div class="row">
+      <input id="userName" placeholder="Prénom">
+      <input id="userPin" placeholder="PIN">
+      <button class="success" onclick="addUser()">Ajouter</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Outils</h2>
+    <button class="primary" onclick="loadAdmin()">Actualiser</button>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Outil</th>
+          <th>Statut</th>
+          <th>Utilisateur</th>
+          <th>Date sortie</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="toolsBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Utilisateurs</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Nom</th>
+          <th>PIN</th>
+          <th>Créé le</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="usersBody"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Historique récent</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Utilisateur</th>
+          <th>Action</th>
+          <th>Outil</th>
+        </tr>
+      </thead>
+      <tbody id="logsBody"></tbody>
+    </table>
+  </div>
+</div>
+
 <script>
+function setAdminSession(user, pass) {
+  sessionStorage.setItem('admin_user', user);
+  sessionStorage.setItem('admin_pass', pass);
+  renderAdminInfo();
+}
+
+function getAdminSession() {
+  return {
+    user: sessionStorage.getItem('admin_user') || '',
+    pass: sessionStorage.getItem('admin_pass') || ''
+  };
+}
+
+function renderAdminInfo() {
+  const { user, pass } = getAdminSession();
+  document.getElementById('adminInfo').textContent =
+    user && pass ? `Session admin active : ${user}` : 'Aucune session admin';
+}
+
+async function api(url) {
+  const res = await fetch(url);
+  const text = await res.text();
+
+  let json = null;
+  try { json = JSON.parse(text); } catch (_) {}
+
+  if (!res.ok) {
+    throw new Error(json?.error || text || 'Erreur');
+  }
+
+  return json ?? text;
+}
+
+async function loginAdmin() {
+  const user = document.getElementById('adminUser').value.trim();
+  const pass = document.getElementById('adminPass').value.trim();
+
+  if (!user || !pass) {
+    return alert('Identifiant + mot de passe requis');
+  }
+
+  setAdminSession(user, pass);
+  await loadAdmin();
+}
+
+function logoutAdmin() {
+  sessionStorage.removeItem('admin_user');
+  sessionStorage.removeItem('admin_pass');
+  renderAdminInfo();
+  document.getElementById('toolsBody').innerHTML = '';
+  document.getElementById('usersBody').innerHTML = '';
+  document.getElementById('logsBody').innerHTML = '';
+}
+
+async function loadAdmin() {
+  const { user, pass } = getAdminSession();
+
+  if (!user || !pass) {
+    return alert('Connecte-toi en admin');
+  }
+
+  try {
+    const data = await api(`/api/admin?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}`);
+
+    const toolsBody = document.getElementById('toolsBody');
+    toolsBody.innerHTML = '';
+    data.tools.forEach(t => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${t.id}</td>
+        <td>${t.nom}</td>
+        <td>${t.en_cours ? '<span class="pill red">Pris</span>' : '<span class="pill green">Libre</span>'}</td>
+        <td>${t.emprunteur || '-'}</td>
+        <td>${t.date_sortie || '-'}</td>
+        <td>
+          <button class="secondary" onclick="openQr(${t.id})">QR</button>
+          <button class="danger" onclick="deleteTool(${t.id})">Supprimer</button>
+        </td>
+      `;
+      toolsBody.appendChild(tr);
+    });
+
+    const usersBody = document.getElementById('usersBody');
+    usersBody.innerHTML = '';
+    data.users.forEach(u => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${u.nom}</td>
+        <td>${u.pin}</td>
+        <td>${u.created_at || '-'}</td>
+        <td>
+          <button class="secondary" onclick="resetPin('${u.nom.replace(/'/g, "\\'")}')">Changer PIN</button>
+          <button class="danger" onclick="deleteUser('${u.nom.replace(/'/g, "\\'")}')">Supprimer</button>
+        </td>
+      `;
+      usersBody.appendChild(tr);
+    });
+
+    const logsBody = document.getElementById('logsBody');
+    logsBody.innerHTML = '';
+    data.mouvements.forEach(m => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${m.date}</td>
+        <td>${m.utilisateur}</td>
+        <td>${m.action}</td>
+        <td>${m.tool_nom || ('#' + (m.tool_id || '-'))}</td>
+      `;
+      logsBody.appendChild(tr);
+    });
+
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+async function addTool() {
+  const { user, pass } = getAdminSession();
+  const nom = document.getElementById('toolName').value.trim();
+
+  if (!user || !pass) return alert('Connecte-toi en admin');
+  if (!nom) return alert("Nom de l'outil requis");
+
+  try {
+    const result = await api(`/api/add-tool?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}&nom=${encodeURIComponent(nom)}`);
+    document.getElementById('toolAddResult').innerHTML =
+      `Outil ajouté. <a href="${result.qrUrl}" target="_blank" style="color:#93c5fd">Ouvrir le QR</a>`;
+    document.getElementById('toolName').value = '';
+    await loadAdmin();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+async function addUser() {
+  const { user, pass } = getAdminSession();
+  const nom = document.getElementById('userName').value.trim();
+  const pin = document.getElementById('userPin').value.trim();
+
+  if (!user || !pass) return alert('Connecte-toi en admin');
+  if (!nom || !pin) return alert('Nom et PIN requis');
+
+  try {
+    const result = await api(`/api/add-user-admin?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}&nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
+    alert(result);
+    document.getElementById('userName').value = '';
+    document.getElementById('userPin').value = '';
+    await loadAdmin();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+function openQr(id) {
+  window.open(`/qrcode/${id}`, '_blank');
+}
+
+async function deleteTool(id) {
+  const { user, pass } = getAdminSession();
+  if (!confirm('Supprimer cet outil ?')) return;
+
+  try {
+    const result = await api(`/api/delete-tool?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}&id=${id}`);
+    alert(result);
+    await loadAdmin();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+async function deleteUser(nom) {
+  const { user, pass } = getAdminSession();
+  if (!confirm(`Supprimer ${nom} ?`)) return;
+
+  try {
+    const result = await api(`/api/delete-user?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}&nom=${encodeURIComponent(nom)}`);
+    alert(result);
+    await loadAdmin();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+async function resetPin(nom) {
+  const { user, pass } = getAdminSession();
+  const pin = prompt(`Nouveau PIN pour ${nom} ?`);
+  if (!pin) return;
+
+  try {
+    const result = await api(`/api/update-user-pin?user=${encodeURIComponent(user)}&pass=${encodeURIComponent(pass)}&nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
+    alert(result);
+    await loadAdmin();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+renderAdminInfo();
+</script>
+   <script>
 /* ==========================================================
    ADMIN PROCONTROL - VERSION PRO FINALE
    Colle ce script tout en bas de public/admin.html
@@ -249,3 +558,5 @@ window.onload = ()=>{
   }
 };
 </script>
+</body>
+</html>
