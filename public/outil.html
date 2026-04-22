@@ -61,7 +61,14 @@ button {
 
 <script>
 
-const id = new URLSearchParams(window.location.search).get("id");
+let id = new URLSearchParams(window.location.search).get("id");
+
+// 🔥 garder id même si reload
+if (id) {
+  sessionStorage.setItem("last_id", id);
+} else {
+  id = sessionStorage.getItem("last_id");
+}
 
 /* ================= USERS ================= */
 
