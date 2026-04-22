@@ -1,172 +1,321 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProControl App</title>
+<script src="https://unpkg.com/html5-qrcode" defer></script>
 <style>
-body {
-  font-family: Arial;
-  background: #0f172a;
-  color: white;
-  text-align: center;
-}
-
-.card {
-  background: #1e293b;
-  padding: 25px;
-  border-radius: 12px;
-  max-width: 400px;
-  margin: auto;
-  margin-top: 40px;
-}
-
-select, input {
-  width: 100%;
-  padding: 12px;
-  margin: 10px 0;
-  border-radius: 8px;
-  border: none;
-}
-
-button {
-  width: 100%;
-  padding: 15px;
-  margin: 10px 0;
-  border-radius: 8px;
-  border: none;
-  font-size: 16px;
-}
-
-.take { background: red; color:white; }
-.return { background: green; color:white; }
-.create { background: #3b82f6; color:white; }
-.logout { background: gray; color:white; }
+  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#0f172a;color:#fff}
+  .wrap{max-width:520px;margin:0 auto;padding:20px}
+  h1,h2{margin:0 0 14px}
+  .card{background:#1e293b;border-radius:16px;padding:20px;margin:16px 0;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+  .muted{color:#cbd5e1;font-size:14px}
+  select,input,button{width:100%;padding:14px;border-radius:12px;border:none;font-size:17px;box-sizing:border-box;margin:8px 0}
+  input,select{background:#fff;color:#111827}
+  button{cursor:pointer;font-weight:700}
+  .primary{background:#2563eb;color:#fff}
+  .danger{background:#dc2626;color:#fff}
+  .success{background:#16a34a;color:#fff}
+  .secondary{background:#475569;color:#fff}
+  .current{font-size:18px;font-weight:700;margin:8px 0}
+  .tool{background:#334155;border-radius:12px;padding:12px;margin:8px 0}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  #reader{width:100%}
+  .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:700}
+  .red{background:#7f1d1d}
+  .green{background:#14532d}
 </style>
 </head>
-
 <body>
+<div class="wrap">
+  <div class="card">
+    <h1>ProControl</h1>
+    <div class="muted">Connexion une seule fois, puis scan de plusieurs outils sans retaper le PIN.</div>
+  </div>
 
-<div class="card">
-<h2>🔧 Outil</h2>
+  <div class="card">
+    <h2>Connexion</h2>
+    <select id="nom"></select>
+    <input id="pin" type="password" placeholder="PIN">
+    <div class="row">
+      <button class="primary" onclick="login()">Se connecter</button>
+      <button class="secondary" onclick="logout()">Changer d'utilisateur</button>
+    </div>
+    <button class="success" onclick="createUser()">Créer un profil depuis l'appli</button>
+    <div id="sessionInfo" class="muted"></div>
+  </div>
 
-<select id="nom"></select>
-<input id="pin" placeholder="PIN" type="password">
+  <div class="card">
+    <h2>Scanner un outil</h2>
+    <div class="row">
+      <button class="primary" onclick="startScanner()">Ouvrir la caméra</button>
+      <button class="secondary" onclick="stopScanner()">Fermer la caméra</button>
+    </div>
+    <div id="reader"></div>
+    <div class="muted">Tu peux aussi ouvrir un QR directement avec un lien du type outil.html?tool=3.</div>
+  </div>
 
-<button class="create" onclick="createUser()">Créer utilisateur</button>
-<button onclick="login()">Se connecter</button>
-<button class="take" onclick="take()">Prendre</button>
-<button class="return" onclick="give()">Rendre</button>
-<button class="logout" onclick="logout()">Changer utilisateur</button>
+  <div class="card">
+    <h2>Outil sélectionné</h2>
+    <div id="currentTool" class="current">Aucun outil sélectionné</div>
+    <div id="currentToolStatus" class="muted"></div>
+    <button class="danger" onclick="takeTool()">Prendre cet outil</button>
+  </div>
 
+  <div class="card">
+    <h2>Mon matériel emprunté</h2>
+    <div class="row">
+      <button class="primary" onclick="loadMyTools()">Actualiser ma liste</button>
+      <button class="success" onclick="returnAll()">Tout rendre</button>
+    </div>
+    <div id="myTools"></div>
+  </div>
 </div>
 
 <script>
+let currentToolId = null;
+let scanner = null;
 
-let id = new URLSearchParams(window.location.search).get("id");
-
-// 🔥 garder id même si reload
-if (id) {
-  sessionStorage.setItem("last_id", id);
-} else {
-  id = sessionStorage.getItem("last_id");
+function saveLastUserName(nom) {
+  localStorage.setItem('last_user_name', nom);
 }
 
-/* ================= USERS ================= */
-
-async function loadUsers() {
-  try {
-    const res = await fetch('/api/admin');
-    const data = await res.json();
-
-    const select = document.getElementById("nom");
-    select.innerHTML = "";
-
-    data.users.forEach(u => {
-      const opt = document.createElement("option");
-      opt.value = u.nom;
-      opt.text = u.nom;
-      select.appendChild(opt);
-    });
-
-  } catch (e) {
-    console.log("Erreur chargement utilisateurs");
-  }
-}
-
-/* ================= CREATE USER ================= */
-
-async function createUser() {
-  const nom = prompt("Nom ?");
-  const pin = prompt("PIN ?");
-
-  if (!nom || !pin) return alert("Nom et PIN requis");
-
-  await fetch(`/api/add-user?nom=${nom}&pin=${pin}`);
-
-  alert("Utilisateur créé");
-  loadUsers();
-}
-
-/* ================= SESSION ================= */
-
-function login() {
-  const nom = document.getElementById("nom").value;
-  const pin = document.getElementById("pin").value;
-
-  if (!nom || !pin) return alert("Nom + PIN requis");
-
-  sessionStorage.setItem("nom", nom);
-  sessionStorage.setItem("pin", pin);
-
-  alert("Connecté");
+function setSession(nom, pin) {
+  sessionStorage.setItem('nom', nom);
+  sessionStorage.setItem('pin', pin);
+  saveLastUserName(nom);
+  renderSessionInfo();
 }
 
 function getSession() {
   return {
-    nom: sessionStorage.getItem("nom"),
-    pin: sessionStorage.getItem("pin")
+    nom: sessionStorage.getItem('nom') || '',
+    pin: sessionStorage.getItem('pin') || ''
   };
 }
 
 function logout() {
   sessionStorage.clear();
-  alert("Déconnecté");
+  renderSessionInfo();
+  alert('Déconnecté');
 }
 
-  window.onload = () => {
-  const nom = sessionStorage.getItem("nom");
+function renderSessionInfo() {
+  const { nom } = getSession();
+  document.getElementById('sessionInfo').textContent = nom
+    ? `Connecté : ${nom}`
+    : `Aucune session active`;
+}
 
-  if (nom) {
-    console.log("Session active :", nom);
+async function loadUsers() {
+  const res = await fetch('/api/public-users');
+  const users = await res.json();
+
+  const select = document.getElementById('nom');
+  select.innerHTML = '';
+
+  users.forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u.nom;
+    opt.textContent = u.nom;
+    select.appendChild(opt);
+  });
+
+  const remembered = localStorage.getItem('last_user_name');
+  if (remembered && [...select.options].some(o => o.value === remembered)) {
+    select.value = remembered;
   }
-};
-  
-/* ================= ACTIONS ================= */
+}
 
-async function take() {
+async function createUser() {
+  const nom = prompt('Prénom ?');
+  const pin = prompt('PIN ?');
+
+  if (!nom || !pin) {
+    return alert('Nom et PIN requis');
+  }
+
+  const res = await fetch(`/api/register?nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
+  const txt = await res.text();
+  alert(txt);
+
+  await loadUsers();
+
+  const select = document.getElementById('nom');
+  if ([...select.options].some(o => o.value === nom)) {
+    select.value = nom;
+  }
+}
+
+async function login() {
+  const nom = document.getElementById('nom').value;
+  const pin = document.getElementById('pin').value;
+
+  if (!nom || !pin) {
+    return alert('Nom + PIN requis');
+  }
+
+  const res = await fetch(`/api/login?nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
+  const txt = await res.text();
+
+  if (!res.ok) {
+    return alert(txt);
+  }
+
+  setSession(nom, pin);
+  alert(txt);
+  await loadMyTools();
+}
+
+function parseToolId(scannedText) {
+  try {
+    if (/^\d+$/.test(scannedText)) return Number(scannedText);
+    if (scannedText.startsWith('TOOL:')) return Number(scannedText.split(':')[1]);
+
+    const url = new URL(scannedText);
+    const direct = url.searchParams.get('tool') || url.searchParams.get('id');
+    if (direct && /^\d+$/.test(direct)) return Number(direct);
+  } catch (e) {}
+
+  return null;
+}
+
+async function showTool(id) {
+  currentToolId = id;
+  const res = await fetch(`/api/tool/${id}`);
+  const box = document.getElementById('currentTool');
+  const status = document.getElementById('currentToolStatus');
+
+  if (!res.ok) {
+    box.textContent = 'Outil introuvable';
+    status.textContent = '';
+    return;
+  }
+
+  const tool = await res.json();
+  box.textContent = `${tool.nom} (ID ${tool.id})`;
+  status.innerHTML = tool.en_cours
+    ? `<span class="badge red">Pris par ${tool.emprunteur}</span>`
+    : `<span class="badge green">Disponible</span>`;
+}
+
+async function startScanner() {
+  if (!scanner) {
+    scanner = new Html5Qrcode("reader");
+  }
+
+  try {
+    await scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 220 },
+      async (decodedText) => {
+        const id = parseToolId(decodedText);
+        if (!id) return;
+        await stopScanner();
+        await showTool(id);
+      }
+    );
+  } catch (e) {
+    console.error(e);
+    alert("Impossible d'ouvrir la caméra");
+  }
+}
+
+async function stopScanner() {
+  if (scanner && scanner.isScanning) {
+    await scanner.stop();
+    await scanner.clear();
+  }
+}
+
+async function takeTool() {
   const { nom, pin } = getSession();
 
   if (!nom || !pin) {
     return alert("Connecte-toi d'abord");
   }
 
-  const res = await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
-  alert(await res.text());
+  if (!currentToolId) {
+    return alert("Scanne d'abord un outil");
+  }
+
+  const res = await fetch(`/api/take?id=${currentToolId}&nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
+  const txt = await res.text();
+  alert(txt);
+
+  await showTool(currentToolId);
+  await loadMyTools();
 }
 
-async function give() {
-  const { nom } = getSession();
+async function loadMyTools() {
+  const { nom, pin } = getSession();
+  const zone = document.getElementById('myTools');
 
-  if (!nom) return alert("Connecte-toi");
+  if (!nom || !pin) {
+    zone.innerHTML = '<div class="muted">Connecte-toi pour voir ta liste.</div>';
+    return;
+  }
 
-  const res = await fetch(`/api/return?id=${id}&nom=${nom}`);
-  alert(await res.text());
+  const res = await fetch(`/api/my-tools?nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
+  const data = await res.json();
+
+  if (!data.length) {
+    zone.innerHTML = '<div class="muted">Aucun outil emprunté.</div>';
+    return;
+  }
+
+  zone.innerHTML = '';
+  data.forEach(tool => {
+    const div = document.createElement('div');
+    div.className = 'tool';
+    div.innerHTML = `
+      <strong>${tool.nom}</strong><br>
+      <span class="muted">ID ${tool.id}</span><br>
+      <button class="success" onclick="returnOne(${tool.id})">Rendre cet outil</button>
+    `;
+    zone.appendChild(div);
+  });
 }
 
-/* ================= INIT ================= */
+async function returnOne(id) {
+  const { nom, pin } = getSession();
+  const res = await fetch(`/api/return?id=${id}&nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
+  const txt = await res.text();
+  alert(txt);
 
-loadUsers();
+  if (currentToolId === id) {
+    await showTool(id);
+  }
+  await loadMyTools();
+}
 
+async function returnAll() {
+  const { nom, pin } = getSession();
+
+  if (!nom || !pin) {
+    return alert("Connecte-toi");
+  }
+
+  const res = await fetch(`/api/return-all?nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
+  const txt = await res.text();
+  alert(txt);
+
+  await loadMyTools();
+  if (currentToolId) {
+    await showTool(currentToolId);
+  }
+}
+
+(async function init() {
+  await loadUsers();
+  renderSessionInfo();
+
+  const urlTool = new URLSearchParams(window.location.search).get('tool');
+  if (urlTool) {
+    await showTool(urlTool);
+  }
+})();
 </script>
-
 </body>
 </html>
