@@ -132,6 +132,14 @@ function logout() {
   alert("Déconnecté");
 }
 
+  window.onload = () => {
+  const nom = sessionStorage.getItem("nom");
+
+  if (nom) {
+    console.log("Session active :", nom);
+  }
+};
+  
 /* ================= ACTIONS ================= */
 
 async function take() {
