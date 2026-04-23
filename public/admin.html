@@ -4,409 +4,171 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin ProControl</title>
+
 <style>
-  *{box-sizing:border-box}
-  body{
-    margin:0;
-    font-family:Arial,Helvetica,sans-serif;
-    background:#07152f;
-    color:#fff;
-    padding:30px;
-  }
-  .wrap{max-width:1400px;margin:auto}
-  .card{
-    background:#13284d;
-    border-radius:18px;
-    padding:25px;
-    margin-bottom:25px;
-    box-shadow:0 15px 40px rgba(0,0,0,.35);
-  }
-  h1{font-size:42px;margin:0 0 20px}
-  h2{font-size:30px;margin:0 0 18px}
-  .grid4{
-    display:grid;
-    grid-template-columns:repeat(4,1fr);
-    gap:15px;
-    margin-bottom:25px;
-  }
-  .stat{
-    background:#1b3566;
-    border-radius:15px;
-    padding:20px;
-    text-align:center;
-    font-size:22px;
-    font-weight:bold;
-  }
-  .row{
-    display:grid;
-    grid-template-columns:1fr 1fr auto;
-    gap:10px;
-  }
-  input{
-    width:100%;
-    padding:15px;
-    border:none;
-    border-radius:12px;
-    font-size:18px;
-  }
-  button{
-    border:none;
-    padding:13px 18px;
-    border-radius:12px;
-    font-size:16px;
-    font-weight:bold;
-    cursor:pointer;
-  }
-  .blue{background:#2d6cff;color:#fff}
-  .green{background:#18b64b;color:#fff}
-  .red{background:#e53935;color:#fff}
-  .gray{background:#4e5f80;color:#fff}
-  .muted{opacity:.8;font-size:14px}
-  table{
-    width:100%;
-    border-collapse:collapse;
-    margin-top:15px;
-  }
-  th,td{
-    padding:12px;
-    border-bottom:1px solid rgba(255,255,255,.08);
-    text-align:left;
-    font-size:16px;
-    vertical-align:top;
-  }
-  th{color:#9dc0ff}
-  .actions button{margin-right:6px;margin-bottom:6px}
-  #debug{
-    background:#0b1c39;
-    color:#9dc0ff;
-    padding:12px;
-    border-radius:10px;
-    white-space:pre-wrap;
-    font-size:13px;
-    margin-top:10px;
-  }
-  @media(max-width:1000px){
-    .grid4{grid-template-columns:1fr 1fr}
-    .row{grid-template-columns:1fr}
-  }
+body{
+margin:0;
+font-family:Arial;
+background:#06142b;
+color:white;
+padding:30px;
+}
+.box{
+background:#162845;
+padding:25px;
+border-radius:18px;
+margin-bottom:25px;
+}
+h1,h2{
+margin-top:0;
+}
+input{
+padding:14px;
+border:none;
+border-radius:10px;
+width:100%;
+font-size:18px;
+margin-bottom:10px;
+}
+button{
+padding:14px 20px;
+border:none;
+border-radius:10px;
+font-size:16px;
+cursor:pointer;
+font-weight:bold;
+}
+.green{background:#19c15f;color:white;}
+.red{background:#ff4c4c;color:white;}
+.blue{background:#2e6cff;color:white;}
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px;
+}
+td,th{
+padding:12px;
+border-bottom:1px solid #31486e;
+text-align:left;
+}
 </style>
 </head>
+
 <body>
-<div class="wrap">
 
-  <div class="card">
-    <h1>🔐 Admin ProControl</h1>
-    <div class="row">
-      <input id="adminUser" placeholder="Utilisateur admin" value="admin">
-      <input id="adminPass" placeholder="Mot de passe admin" type="password" value="admin123">
-      <button class="blue" onclick="login()">Connexion</button>
-    </div>
-    <div style="margin-top:10px">
-      <button class="gray" onclick="logout()">Déconnexion</button>
-      <button class="blue" onclick="loadAll()">Actualiser</button>
-    </div>
-    <div id="status" class="muted" style="margin-top:10px"></div>
-    <div id="debug"></div>
-  </div>
+<div class="box">
+<h1>🔐 Admin ProControl</h1>
+<button class="blue" onclick="load()">Actualiser</button>
+</div>
 
-  <div class="grid4">
-    <div class="stat">Outils<br><span id="s1">0</span></div>
-    <div class="stat">Pris<br><span id="s2">0</span></div>
-    <div class="stat">Libres<br><span id="s3">0</span></div>
-    <div class="stat">Utilisateurs<br><span id="s4">0</span></div>
-  </div>
+<div class="box">
+<h2>🧰 Ajouter outil</h2>
+<input id="toolName" placeholder="Nom matériel">
+<button class="green" onclick="addTool()">Ajouter</button>
+</div>
 
-  <div class="card">
-    <h2>🧰 Ajouter un outil</h2>
-    <div class="row">
-      <input id="toolName" placeholder="Nom du matériel">
-      <div></div>
-      <button class="green" onclick="addTool()">Ajouter</button>
-    </div>
-  </div>
+<div class="box">
+<h2>👤 Ajouter utilisateur</h2>
+<input id="userName" placeholder="Prénom">
+<input id="userPin" placeholder="PIN">
+<button class="green" onclick="addUser()">Ajouter</button>
+</div>
 
-  <div class="card">
-    <h2>👤 Ajouter utilisateur</h2>
-    <div class="row">
-      <input id="userName" placeholder="Prénom">
-      <input id="userPin" placeholder="PIN">
-      <button class="green" onclick="addUser()">Ajouter</button>
-    </div>
-  </div>
+<div class="box">
+<h2>🧰 Outils</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Nom</th>
+<th>Statut</th>
+<th>Utilisateur</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="tools"></tbody>
+</table>
+</div>
 
-  <div class="card">
-    <h2>🧰 Liste matériel</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Nom</th>
-          <th>Statut</th>
-          <th>Utilisateur</th>
-          <th>Date sortie</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="toolsBody"></tbody>
-    </table>
-  </div>
-
-  <div class="card">
-    <h2>👤 Utilisateurs</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Nom</th>
-          <th>PIN</th>
-          <th>Créé le</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="usersBody"></tbody>
-    </table>
-  </div>
-
-  <div class="card">
-    <h2>📜 Historique</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Utilisateur</th>
-          <th>Action</th>
-          <th>Outil</th>
-        </tr>
-      </thead>
-      <tbody id="logsBody"></tbody>
-    </table>
-  </div>
-
+<div class="box">
+<h2>👤 Utilisateurs</h2>
+<table>
+<thead>
+<tr>
+<th>Nom</th>
+<th>PIN</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="users"></tbody>
+</table>
 </div>
 
 <script>
-function saveSession() {
-  sessionStorage.setItem("auser", document.getElementById("adminUser").value.trim());
-  sessionStorage.setItem("apass", document.getElementById("adminPass").value.trim());
+async function load(){
+const r = await fetch('/api/admin');
+const data = await r.json();
+
+let html='';
+
+data.tools.forEach(t=>{
+html+=`
+<tr>
+<td>${t.id}</td>
+<td>${t.nom}</td>
+<td>${t.en_cours?'🔴 Pris':'🟢 Libre'}</td>
+<td>${t.emprunteur||'-'}</td>
+<td><button class="red" onclick="delTool(${t.id})">Supprimer</button></td>
+</tr>`;
+});
+
+document.getElementById("tools").innerHTML=html;
+
+html='';
+
+data.users.forEach(u=>{
+html+=`
+<tr>
+<td>${u.nom}</td>
+<td>${u.pin}</td>
+<td><button class="red" onclick="delUser(${u.id})">Supprimer</button></td>
+</tr>`;
+});
+
+document.getElementById("users").innerHTML=html;
 }
 
-function auth() {
-  return {
-    u: sessionStorage.getItem("auser") || "admin",
-    p: sessionStorage.getItem("apass") || "admin123"
-  };
+async function addTool(){
+const nom=document.getElementById("toolName").value;
+await fetch('/api/add-tool?nom='+encodeURIComponent(nom));
+document.getElementById("toolName").value='';
+load();
 }
 
-function setStatus(msg) {
-  document.getElementById("status").textContent = msg;
+async function addUser(){
+const nom=document.getElementById("userName").value;
+const pin=document.getElementById("userPin").value;
+
+await fetch('/api/add-user-admin?nom='+encodeURIComponent(nom)+'&pin='+pin);
+
+document.getElementById("userName").value='';
+document.getElementById("userPin").value='';
+
+load();
 }
 
-function setDebug(obj) {
-  document.getElementById("debug").textContent =
-    typeof obj === "string" ? obj : JSON.stringify(obj, null, 2);
+async function delTool(id){
+await fetch('/api/delete-tool?id='+id);
+load();
 }
 
-function login() {
-  saveSession();
-  loadAll();
+async function delUser(id){
+await fetch('/api/delete-user?id='+id);
+load();
 }
 
-function logout() {
-  sessionStorage.clear();
-  location.reload();
-}
-
-async function fetchJson(url) {
-  const r = await fetch(url);
-  const txt = await r.text();
-
-  let data;
-  try {
-    data = JSON.parse(txt);
-  } catch (e) {
-    throw new Error("Réponse non JSON : " + txt.slice(0, 200));
-  }
-
-  if (!r.ok) {
-    throw new Error(data.error || txt || "Erreur serveur");
-  }
-
-  return data;
-}
-
-async function fetchText(url) {
-  const r = await fetch(url);
-  const txt = await r.text();
-  if (!r.ok) throw new Error(txt || "Erreur serveur");
-  return txt;
-}
-
-async function loadAll() {
-  try {
-    const a = auth();
-    setStatus("Chargement admin...");
-    const data = await fetchJson(`/api/admin?user=${encodeURIComponent(a.u)}&pass=${encodeURIComponent(a.p)}`);
-
-    setDebug(data);
-    renderStats(data);
-    renderTools(data.tools || []);
-    renderUsers(data.users || []);
-    renderLogs(data.mouvements || []);
-
-    setStatus("Connecté en admin");
-  } catch (e) {
-    setStatus("Erreur admin");
-    setDebug(String(e.message || e));
-    alert("Erreur admin : " + e.message);
-  }
-}
-
-function renderStats(d) {
-  const tools = d.tools || [];
-  const users = d.users || [];
-  document.getElementById("s1").textContent = tools.length;
-  document.getElementById("s2").textContent = tools.filter(x => x.en_cours).length;
-  document.getElementById("s3").textContent = tools.filter(x => !x.en_cours).length;
-  document.getElementById("s4").textContent = users.length;
-}
-
-function renderTools(list) {
-  const zone = document.getElementById("toolsBody");
-  let html = "";
-
-  list.forEach(x => {
-    html += `
-      <tr>
-        <td>${x.id}</td>
-        <td>${x.nom}</td>
-        <td>${x.en_cours ? "🔴 Pris" : "🟢 Libre"}</td>
-        <td>${x.emprunteur || "-"}</td>
-        <td>${x.date_sortie || "-"}</td>
-        <td class="actions">
-          <button class="blue" onclick="showQR(${x.id})">QR</button>
-          <button class="red" onclick="delTool(${x.id})">Supprimer</button>
-        </td>
-      </tr>
-    `;
-  });
-
-  zone.innerHTML = html || `<tr><td colspan="6">Aucun outil</td></tr>`;
-}
-
-function renderUsers(list) {
-  const zone = document.getElementById("usersBody");
-  let html = "";
-
-  list.forEach(x => {
-    const safeNom = String(x.nom).replace(/'/g, "\\'");
-    html += `
-      <tr>
-        <td>${x.nom}</td>
-        <td>${x.pin}</td>
-        <td>${x.created_at || "-"}</td>
-        <td class="actions">
-          <button class="blue" onclick="changePin('${safeNom}')">PIN</button>
-          <button class="red" onclick="delUser('${safeNom}')">Supprimer</button>
-        </td>
-      </tr>
-    `;
-  });
-
-  zone.innerHTML = html || `<tr><td colspan="4">Aucun utilisateur</td></tr>`;
-}
-
-function renderLogs(list) {
-  const zone = document.getElementById("logsBody");
-  let html = "";
-
-  list.forEach(x => {
-    html += `
-      <tr>
-        <td>${x.date || "-"}</td>
-        <td>${x.utilisateur || "-"}</td>
-        <td>${x.action || "-"}</td>
-        <td>${x.tool_nom || "-"}</td>
-      </tr>
-    `;
-  });
-
-  zone.innerHTML = html || `<tr><td colspan="4">Aucun mouvement</td></tr>`;
-}
-
-async function addTool() {
-  try {
-    const nom = document.getElementById("toolName").value.trim();
-    if (!nom) return alert("Nom outil ?");
-
-    const a = auth();
-    await fetchJson(`/api/add-tool?user=${encodeURIComponent(a.u)}&pass=${encodeURIComponent(a.p)}&nom=${encodeURIComponent(nom)}`);
-
-    document.getElementById("toolName").value = "";
-    await loadAll();
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-async function addUser() {
-  try {
-    const nom = document.getElementById("userName").value.trim();
-    const pin = document.getElementById("userPin").value.trim();
-    if (!nom || !pin) return alert("Nom + PIN");
-
-    const a = auth();
-    await fetchText(`/api/add-user-admin?user=${encodeURIComponent(a.u)}&pass=${encodeURIComponent(a.p)}&nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
-
-    document.getElementById("userName").value = "";
-    document.getElementById("userPin").value = "";
-    await loadAll();
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-async function delTool(id) {
-  try {
-    if (!confirm("Supprimer cet outil ?")) return;
-    const a = auth();
-    await fetchText(`/api/delete-tool?user=${encodeURIComponent(a.u)}&pass=${encodeURIComponent(a.p)}&id=${id}`);
-    await loadAll();
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-async function delUser(nom) {
-  try {
-    if (!confirm("Supprimer utilisateur ?")) return;
-    const a = auth();
-    await fetchText(`/api/delete-user?user=${encodeURIComponent(a.u)}&pass=${encodeURIComponent(a.p)}&nom=${encodeURIComponent(nom)}`);
-    await loadAll();
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-async function changePin(nom) {
-  try {
-    const pin = prompt("Nouveau PIN ?");
-    if (!pin) return;
-
-    const a = auth();
-    await fetchText(`/api/update-user-pin?user=${encodeURIComponent(a.u)}&pass=${encodeURIComponent(a.p)}&nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
-    await loadAll();
-  } catch (e) {
-    alert(e.message);
-  }
-}
-
-function showQR(id) {
-  window.open(`/qrcode/${id}`, "_blank");
-}
-
-window.onload = () => {
-  document.getElementById("adminUser").value = sessionStorage.getItem("auser") || "admin";
-  document.getElementById("adminPass").value = sessionStorage.getItem("apass") || "admin123";
-};
+load();
 </script>
+
 </body>
 </html>
