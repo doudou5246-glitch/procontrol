@@ -8,12 +8,8 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const PORT = process.env.PORT || 3000;
-
-// Admin par défaut
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin2026!';
-
-// URL publique Render
 const PUBLIC_BASE_URL = process.env.PUBLIC_BASE_URL || '';
 
 const pool = new Pool({
@@ -21,7 +17,7 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-function publicBaseUrl(req) {
+function baseUrl(req) {
   return PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`;
 }
 
@@ -66,16 +62,14 @@ async function initDb() {
   `);
 }
 
-// Accueil -> app utilisateur
 app.get('/', (req, res) => {
   res.redirect('/outil.html');
 });
 
 /* =========================
-   PUBLIC / UTILISATEURS
+   UTILISATEURS PUBLIC
 ========================= */
 
-// Liste publique des noms uniquement
 app.get('/api/public-users', async (req, res) => {
   try {
     const result = await q('SELECT nom FROM users ORDER BY nom');
@@ -86,7 +80,6 @@ app.get('/api/public-users', async (req, res) => {
   }
 });
 
-// Création profil depuis l'appli
 app.get('/api/register', async (req, res) => {
   try {
     const nom = String(req.query.nom || '').trim();
@@ -109,7 +102,6 @@ app.get('/api/register', async (req, res) => {
   }
 });
 
-// Connexion utilisateur
 app.get('/api/login', async (req, res) => {
   try {
     const nom = String(req.query.nom || '').trim();
@@ -135,7 +127,10 @@ app.get('/api/login', async (req, res) => {
   }
 });
 
-// Détail d'un outil
+/* =========================
+   OUTILS UTILISATEUR
+========================= */
+
 app.get('/api/tool/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -152,7 +147,6 @@ app.get('/api/tool/:id', async (req, res) => {
   }
 });
 
-// Prendre un outil
 app.get('/api/take', async (req, res) => {
   try {
     const id = Number(req.query.id);
@@ -167,6 +161,7 @@ app.get('/api/take', async (req, res) => {
       'SELECT id FROM users WHERE nom = $1 AND pin = $2',
       [nom, pin]
     );
+
     if (!user.rows.length) {
       return res.status(401).send('PIN incorrect');
     }
@@ -202,7 +197,6 @@ app.get('/api/take', async (req, res) => {
   }
 });
 
-// Rendre un outil
 app.get('/api/return', async (req, res) => {
   try {
     const id = Number(req.query.id);
@@ -217,6 +211,7 @@ app.get('/api/return', async (req, res) => {
       'SELECT id FROM users WHERE nom = $1 AND pin = $2',
       [nom, pin]
     );
+
     if (!user.rows.length) {
       return res.status(401).send('PIN incorrect');
     }
@@ -256,7 +251,6 @@ app.get('/api/return', async (req, res) => {
   }
 });
 
-// Mes outils
 app.get('/api/my-tools', async (req, res) => {
   try {
     const nom = String(req.query.nom || '').trim();
@@ -266,6 +260,7 @@ app.get('/api/my-tools', async (req, res) => {
       'SELECT id FROM users WHERE nom = $1 AND pin = $2',
       [nom, pin]
     );
+
     if (!user.rows.length) {
       return res.status(401).json([]);
     }
@@ -282,7 +277,6 @@ app.get('/api/my-tools', async (req, res) => {
   }
 });
 
-// Tout rendre
 app.get('/api/return-all', async (req, res) => {
   try {
     const nom = String(req.query.nom || '').trim();
@@ -292,11 +286,15 @@ app.get('/api/return-all', async (req, res) => {
       'SELECT id FROM users WHERE nom = $1 AND pin = $2',
       [nom, pin]
     );
+
     if (!user.rows.length) {
       return res.status(401).send('PIN incorrect');
     }
 
-    const tools = await q('SELECT * FROM tools WHERE emprunteur = $1', [nom]);
+    const tools = await q(
+      'SELECT * FROM tools WHERE emprunteur = $1',
+      [nom]
+    );
 
     for (const tool of tools.rows) {
       await q(
@@ -353,7 +351,6 @@ app.get('/api/admin', async (req, res) => {
   }
 });
 
-// Ajouter utilisateur admin
 app.get('/api/add-user-admin', async (req, res) => {
   try {
     const user = String(req.query.user || '');
@@ -377,7 +374,6 @@ app.get('/api/add-user-admin', async (req, res) => {
   }
 });
 
-// Supprimer utilisateur admin
 app.get('/api/delete-user', async (req, res) => {
   try {
     const user = String(req.query.user || '');
@@ -386,7 +382,11 @@ app.get('/api/delete-user', async (req, res) => {
 
     if (!isAdmin(user, pass)) return res.status(401).send('Accès refusé');
 
-    const usingTools = await q('SELECT id FROM tools WHERE emprunteur = $1', [nom]);
+    const usingTools = await q(
+      'SELECT id FROM tools WHERE emprunteur = $1',
+      [nom]
+    );
+
     if (usingTools.rows.length) {
       return res.status(409).send('Utilisateur a encore du matériel');
     }
@@ -399,7 +399,6 @@ app.get('/api/delete-user', async (req, res) => {
   }
 });
 
-// Changer PIN admin
 app.get('/api/update-user-pin', async (req, res) => {
   try {
     const user = String(req.query.user || '');
@@ -418,7 +417,6 @@ app.get('/api/update-user-pin', async (req, res) => {
   }
 });
 
-// Ajouter outil admin
 app.get('/api/add-tool', async (req, res) => {
   try {
     const user = String(req.query.user || '');
@@ -439,7 +437,7 @@ app.get('/api/add-tool', async (req, res) => {
       message: 'Outil ajouté',
       id,
       nom,
-      qrUrl: `${publicBaseUrl(req)}/qrcode/${id}`
+      qrUrl: `${baseUrl(req)}/qrcode/${id}`
     });
   } catch (e) {
     console.error(e);
@@ -447,7 +445,6 @@ app.get('/api/add-tool', async (req, res) => {
   }
 });
 
-// Supprimer outil admin
 app.get('/api/delete-tool', async (req, res) => {
   try {
     const user = String(req.query.user || '');
@@ -465,13 +462,13 @@ app.get('/api/delete-tool', async (req, res) => {
 });
 
 /* =========================
-   QR CODE
+   QR
 ========================= */
 
 app.get('/qrcode/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
-    const url = `${publicBaseUrl(req)}/outil.html?tool=${id}`;
+    const url = `${baseUrl(req)}/outil.html?tool=${id}`;
     const qr = await QRCode.toDataURL(url);
 
     res.send(`
