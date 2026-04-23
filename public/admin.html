@@ -4,399 +4,189 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Admin ProControl</title>
+
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
 body{
-font-family:Arial,Helvetica,sans-serif;
-background:#07142c;
-color:#fff;
+margin:0;
+font-family:Arial;
+background:#07152f;
+color:white;
 padding:30px;
 }
-.wrap{
-max-width:1400px;
-margin:auto;
-}
-.card{
-background:#142544;
-border-radius:18px;
+.box{
+background:#13284d;
 padding:25px;
+border-radius:18px;
 margin-bottom:25px;
-box-shadow:0 15px 40px rgba(0,0,0,.35);
-}
-h1{
-font-size:42px;
-margin-bottom:20px;
-}
-h2{
-font-size:30px;
-margin-bottom:20px;
-}
-.grid4{
-display:grid;
-grid-template-columns:repeat(4,1fr);
-gap:15px;
-margin-bottom:25px;
-}
-.stat{
-background:#1c335e;
-padding:20px;
-border-radius:15px;
-text-align:center;
-font-size:22px;
-font-weight:bold;
 }
 input{
-width:100%;
-padding:15px;
+padding:14px;
 border:none;
 border-radius:12px;
-font-size:18px;
-margin-bottom:12px;
-}
-.row{
-display:grid;
-grid-template-columns:1fr 1fr auto;
-gap:10px;
+width:260px;
+margin:5px;
+font-size:16px;
 }
 button{
+padding:14px 20px;
 border:none;
-padding:13px 18px;
 border-radius:12px;
-font-size:16px;
-font-weight:bold;
 cursor:pointer;
+font-weight:bold;
+margin:5px;
 }
-.blue{background:#2d6cff;color:#fff}
-.green{background:#18b64b;color:#fff}
-.red{background:#e53935;color:#fff}
-.gray{background:#4e5f80;color:#fff}
+.blue{background:#2d6cff;color:white;}
+.green{background:#18b84f;color:white;}
+.red{background:#d73a3a;color:white;}
 table{
 width:100%;
 border-collapse:collapse;
 margin-top:15px;
 }
-th,td{
+td,th{
 padding:12px;
-border-bottom:1px solid rgba(255,255,255,.08);
+border-bottom:1px solid rgba(255,255,255,.1);
 text-align:left;
-font-size:16px;
-}
-th{color:#8fb3ff}
-.actions button{
-margin-right:6px;
-margin-bottom:5px;
-}
-@media(max-width:1000px){
-.grid4{grid-template-columns:1fr 1fr}
-.row{grid-template-columns:1fr}
 }
 </style>
 </head>
+
 <body>
 
-<div class="wrap">
+<div class="box">
+<h1>🔒 Admin ProControl</h1>
 
-<div class="card">
-<h1>🔐 Admin ProControl</h1>
-
-<div class="row">
-<input id="adminUser" placeholder="Utilisateur admin" value="admin">
-<input id="adminPass" placeholder="Mot de passe admin" type="password">
-<button class="blue" onclick="login()">Connexion</button>
+<input id="user" placeholder="Identifiant" value="admin">
+<input id="pass" placeholder="Mot de passe" value="admin123">
+<button class="blue" onclick="load()">Connexion</button>
 </div>
 
-<div style="margin-top:10px">
-<button class="gray" onclick="logout()">Déconnexion</button>
-<button class="blue" onclick="loadAll()">Actualiser</button>
-</div>
-</div>
-
-<div class="grid4">
-<div class="stat">Outils<br><span id="s1">0</span></div>
-<div class="stat">Pris<br><span id="s2">0</span></div>
-<div class="stat">Libres<br><span id="s3">0</span></div>
-<div class="stat">Utilisateurs<br><span id="s4">0</span></div>
-</div>
-
-<div class="card">
-<h2>🧰 Ajouter un outil</h2>
-<div class="row">
-<input id="toolName" placeholder="Nom du matériel">
-<div></div>
+<div class="box">
+<h2>➕ Ajouter outil</h2>
+<input id="toolName" placeholder="Nom outil">
 <button class="green" onclick="addTool()">Ajouter</button>
 </div>
-</div>
 
-<div class="card">
+<div class="box">
 <h2>👤 Ajouter utilisateur</h2>
-<div class="row">
-<input id="userName" placeholder="Prénom">
+<input id="userName" placeholder="Nom">
 <input id="userPin" placeholder="PIN">
 <button class="green" onclick="addUser()">Ajouter</button>
 </div>
+
+<div class="box">
+<h2>🧰 Outils</h2>
+<div id="tools"></div>
 </div>
 
-<div class="card">
-<h2>🧰 Liste matériel</h2>
-<table>
-<thead>
-<tr>
-<th>ID</th>
-<th>Nom</th>
-<th>Statut</th>
-<th>Utilisateur</th>
-<th>Actions</th>
-</tr>
-</thead>
-<tbody id="tools"></tbody>
-</table>
-</div>
-
-<div class="card">
-<h2>👤 Utilisateurs</h2>
-<table>
-<thead>
-<tr>
-<th>Nom</th>
-<th>PIN</th>
-<th>Actions</th>
-</tr>
-</thead>
-<tbody id="users"></tbody>
-</table>
-</div>
-
-<div class="card">
-<h2>📜 Historique</h2>
-<table>
-<thead>
-<tr>
-<th>Date</th>
-<th>Utilisateur</th>
-<th>Action</th>
-<th>Outil</th>
-</tr>
-</thead>
-<tbody id="logs"></tbody>
-</table>
-</div>
-
+<div class="box">
+<h2>👥 Utilisateurs</h2>
+<div id="users"></div>
 </div>
 
 <script>
-function saveSession(){
-  sessionStorage.setItem("auser", document.getElementById("adminUser").value.trim());
-  sessionStorage.setItem("apass", document.getElementById("adminPass").value.trim());
+
+function creds(){
+return {
+user:document.getElementById("user").value,
+pass:document.getElementById("pass").value
+};
 }
 
-function auth(){
-  return {
-    u: sessionStorage.getItem("auser") || "admin",
-    p: sessionStorage.getItem("apass") || ""
-  };
+async function load(){
+
+const c=creds();
+
+const r=await fetch(`/api/admin?user=${c.user}&pass=${c.pass}`);
+const data=await r.json();
+
+if(data.error){
+alert(data.error);
+return;
 }
 
-function login(){
-  saveSession();
-  loadAll();
-}
-
-function logout(){
-  sessionStorage.clear();
-  location.reload();
-}
-
-async function loadAll(){
-  const a = auth();
-
-  const r = await fetch(`/api/admin?user=${encodeURIComponent(a.u)}&pass=${encodeURIComponent(a.p)}`);
-  const txt = await r.text();
-
-  let data;
-  try {
-    data = JSON.parse(txt);
-  } catch(e) {
-    alert("Réponse admin invalide");
-    console.log(txt);
-    return;
-  }
-
-  if (!r.ok) {
-    alert(data.error || "Erreur admin");
-    return;
-  }
-
-  renderStats(data);
-  renderTools(data.tools || []);
-  renderUsers(data.users || []);
-  renderLogs(data.mouvements || []);
-}
-
-function renderStats(d){
-  const t = d.tools || [];
-  const u = d.users || [];
-  document.getElementById("s1").innerText = t.length;
-  document.getElementById("s2").innerText = t.filter(x => x.en_cours).length;
-  document.getElementById("s3").innerText = t.filter(x => !x.en_cours).length;
-  document.getElementById("s4").innerText = u.length;
+renderTools(data.tools || []);
+renderUsers(data.users || []);
 }
 
 function renderTools(list){
-  let html = "";
 
-  list.forEach(x => {
-    html += `
-      <tr>
-        <td>${x.id}</td>
-        <td>${x.nom}</td>
-        <td>${x.en_cours ? "🔴 Pris" : "🟢 Libre"}</td>
-        <td>${x.emprunteur || "-"}</td>
-        <td class="actions">
-          <button class="blue" onclick="showQR(${x.id})">QR</button>
-          <button class="red" onclick="delTool(${x.id})">Supprimer</button>
-        </td>
-      </tr>
-    `;
-  });
+let html="<table><tr><th>ID</th><th>Nom</th><th>Statut</th><th>Action</th></tr>";
 
-  document.getElementById("tools").innerHTML = html || `<tr><td colspan="5">Aucun outil</td></tr>`;
+list.forEach(t=>{
+
+html+=`
+<tr>
+<td>${t.id}</td>
+<td>${t.nom}</td>
+<td>${t.en_cours ? "Pris par "+t.emprunteur : "Libre"}</td>
+<td><button class="red" onclick="deleteTool(${t.id})">Supprimer</button></td>
+</tr>
+`;
+
+});
+
+html+="</table>";
+
+document.getElementById("tools").innerHTML=html;
 }
 
 function renderUsers(list){
-  let html = "";
 
-  list.forEach(x => {
-    html += `
-      <tr>
-        <td>${x.nom}</td>
-        <td>${x.pin}</td>
-        <td class="actions">
-          <button class="blue" onclick="changePin('${x.nom.replace(/'/g, "\\'")}')">PIN</button>
-          <button class="red" onclick="delUser('${x.nom.replace(/'/g, "\\'")}')">Supprimer</button>
-        </td>
-      </tr>
-    `;
-  });
+let html="<table><tr><th>Nom</th><th>PIN</th><th>Action</th></tr>";
 
-  document.getElementById("users").innerHTML = html || `<tr><td colspan="3">Aucun utilisateur</td></tr>`;
-}
+list.forEach(u=>{
 
-function renderLogs(list){
-  let html = "";
+html+=`
+<tr>
+<td>${u.nom}</td>
+<td>${u.pin}</td>
+<td><button class="red" onclick="deleteUser('${u.nom}')">Supprimer</button></td>
+</tr>
+`;
 
-  list.forEach(x => {
-    html += `
-      <tr>
-        <td>${x.date || "-"}</td>
-        <td>${x.utilisateur || "-"}</td>
-        <td>${x.action || "-"}</td>
-        <td>${x.tool_nom || "-"}</td>
-      </tr>
-    `;
-  });
+});
 
-  document.getElementById("logs").innerHTML = html || `<tr><td colspan="4">Aucun mouvement</td></tr>`;
+html+="</table>";
+
+document.getElementById("users").innerHTML=html;
 }
 
 async function addTool(){
-  const nom = document.getElementById("toolName").value.trim();
-  if (!nom) return;
 
-  const a = auth();
+const nom=document.getElementById("toolName").value;
 
-  const r = await fetch(`/api/add-tool?user=${encodeURIComponent(a.u)}&pass=${encodeURIComponent(a.p)}&nom=${encodeURIComponent(nom)}`);
-  const txt = await r.text();
+await fetch(`/api/add-tool?nom=${encodeURIComponent(nom)}`);
 
-  if (!r.ok) {
-    alert(txt);
-    return;
-  }
-
-  document.getElementById("toolName").value = "";
-  loadAll();
+load();
 }
 
 async function addUser(){
-  const nom = document.getElementById("userName").value.trim();
-  const pin = document.getElementById("userPin").value.trim();
-  if (!nom || !pin) return;
 
-  const a = auth();
+const nom=document.getElementById("userName").value;
+const pin=document.getElementById("userPin").value;
 
-  const r = await fetch(`/api/add-user-admin?user=${encodeURIComponent(a.u)}&pass=${encodeURIComponent(a.p)}&nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
-  const txt = await r.text();
+await fetch(`/api/add-user?nom=${encodeURIComponent(nom)}&pin=${pin}`);
 
-  if (!r.ok) {
-    alert(txt);
-    return;
-  }
-
-  document.getElementById("userName").value = "";
-  document.getElementById("userPin").value = "";
-  loadAll();
+load();
 }
 
-async function delTool(id){
-  if (!confirm("Supprimer ?")) return;
+async function deleteTool(id){
 
-  const a = auth();
+await fetch(`/api/delete-tool?id=${id}`);
 
-  const r = await fetch(`/api/delete-tool?user=${encodeURIComponent(a.u)}&pass=${encodeURIComponent(a.p)}&id=${id}`);
-  const txt = await r.text();
-
-  if (!r.ok) {
-    alert(txt);
-    return;
-  }
-
-  loadAll();
+load();
 }
 
-async function delUser(nom){
-  if (!confirm("Supprimer utilisateur ?")) return;
+async function deleteUser(nom){
 
-  const a = auth();
+await fetch(`/api/delete-user?nom=${encodeURIComponent(nom)}`);
 
-  const r = await fetch(`/api/delete-user?user=${encodeURIComponent(a.u)}&pass=${encodeURIComponent(a.p)}&nom=${encodeURIComponent(nom)}`);
-  const txt = await r.text();
-
-  if (!r.ok) {
-    alert(txt);
-    return;
-  }
-
-  loadAll();
+load();
 }
 
-async function changePin(nom){
-  const pin = prompt("Nouveau PIN ?");
-  if (!pin) return;
+load();
 
-  const a = auth();
-
-  const r = await fetch(`/api/update-user-pin?user=${encodeURIComponent(a.u)}&pass=${encodeURIComponent(a.p)}&nom=${encodeURIComponent(nom)}&pin=${encodeURIComponent(pin)}`);
-  const txt = await r.text();
-
-  if (!r.ok) {
-    alert(txt);
-    return;
-  }
-
-  loadAll();
-}
-
-function showQR(id){
-  window.open(`/qrcode/${id}`, "_blank");
-}
-
-window.onload = () => {
-  document.getElementById("adminUser").value = sessionStorage.getItem("auser") || "admin";
-  document.getElementById("adminPass").value = sessionStorage.getItem("apass") || "";
-  if (sessionStorage.getItem("auser")) {
-    loadAll();
-  }
-};
 </script>
-
 </body>
 </html>
