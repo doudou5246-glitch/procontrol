@@ -1,131 +1,149 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-  <title>ProControl</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ProControl</title>
 
-  <style>
-    body {
-      font-family: Arial;
-      background: #0f172a;
-      color: white;
-      margin: 0;
-      padding: 0;
-    }
-
-    header {
-      background: #1e293b;
-      padding: 20px;
-      text-align: center;
-      font-size: 24px;
-      font-weight: bold;
-    }
-
-    .container {
-      max-width: 500px;
-      margin: auto;
-      padding: 20px;
-    }
-
-    input {
-      width: 100%;
-      padding: 12px;
-      margin: 10px 0;
-      border-radius: 8px;
-      border: none;
-      font-size: 16px;
-    }
-
-    button {
-      width: 48%;
-      padding: 12px;
-      margin: 5px 1%;
-      border-radius: 8px;
-      border: none;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    .prendre {
-      background: #ef4444;
-      color: white;
-    }
-
-    .rendre {
-      background: #22c55e;
-      color: white;
-    }
-
-    .card {
-      background: #1e293b;
-      margin-top: 20px;
-      padding: 15px;
-      border-radius: 10px;
-    }
-  </style>
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:#08192f;
+color:white;
+padding:20px;
+}
+.box{
+background:#162845;
+padding:22px;
+border-radius:18px;
+margin-bottom:20px;
+}
+h1,h2{
+margin-top:0;
+}
+input,select{
+width:100%;
+padding:15px;
+border:none;
+border-radius:12px;
+font-size:18px;
+margin-bottom:10px;
+}
+button{
+width:100%;
+padding:15px;
+border:none;
+border-radius:12px;
+font-size:18px;
+font-weight:bold;
+cursor:pointer;
+margin-bottom:10px;
+}
+.blue{background:#2e6cff;color:white;}
+.green{background:#19c15f;color:white;}
+.red{background:#ff4c4c;color:white;}
+.small{
+font-size:14px;
+opacity:.8;
+}
+</style>
 </head>
 
 <body>
 
-<header>🔧 ProControl</header>
+<div class="box">
+<h1>📱 ProControl</h1>
+<div class="small">Connexion utilisateur</div>
+</div>
 
-<div class="container">
+<div class="box">
+<h2>👤 Profil</h2>
 
-  <input id="nom" placeholder="Nom">
-  <input id="pin" placeholder="PIN">
-  <input id="id" placeholder="ID outil">
+<select id="nom"></select>
+<input id="pin" placeholder="PIN">
 
-  <div>
-    <button class="prendre" onclick="prendre()">Prendre</button>
-    <button class="rendre" onclick="rendre()">Rendre</button>
-  </div>
+<button class="blue" onclick="connect()">Connexion</button>
+<button class="green" onclick="newUser()">Créer profil</button>
 
-  <div class="card">
-    <h3>📦 Suivi du matériel</h3>
-    <button onclick="load()">Actualiser</button>
-    <div id="list"></div>
-  </div>
+<div id="status"></div>
+</div>
 
+<div class="box">
+<h2>🧰 Matériel</h2>
+
+<input id="toolId" placeholder="ID outil">
+
+<button class="green" onclick="take()">Prendre</button>
+<button class="red" onclick="give()">Rendre</button>
+
+<div class="small">Scanne QR plus tard si besoin</div>
 </div>
 
 <script>
+let currentUser="";
+let currentPin="";
 
-async function prendre() {
-  const nom = document.getElementById("nom").value;
-  const pin = document.getElementById("pin").value;
-  const id = document.getElementById("id").value;
+async function loadUsers(){
 
-  const res = await fetch(`/api/take?id=${id}&nom=${nom}&pin=${pin}`);
-  alert(await res.text());
+const r=await fetch('/api/admin');
+const data=await r.json();
+
+let html='';
+
+data.users.forEach(u=>{
+html+=`<option value="${u.nom}">${u.nom}</option>`;
+});
+
+document.getElementById("nom").innerHTML=html;
+
+const saved=localStorage.getItem("lastUser");
+if(saved) document.getElementById("nom").value=saved;
 }
 
-async function rendre() {
-  const nom = document.getElementById("nom").value;
-  const pin = document.getElementById("pin").value;
-  const id = document.getElementById("id").value;
+function connect(){
 
-  const res = await fetch(`/api/return?id=${id}&nom=${nom}&pin=${pin}`);
-  alert(await res.text());
+currentUser=document.getElementById("nom").value;
+currentPin=document.getElementById("pin").value;
+
+localStorage.setItem("lastUser",currentUser);
+
+document.getElementById("status").innerHTML="✅ Connecté : "+currentUser;
 }
 
-async function load() {
-  const res = await fetch("/api/admin");
-  const data = await res.json();
+async function newUser(){
 
-  const list = document.getElementById("list");
-  list.innerHTML = "";
+const nom=prompt("Prénom ?");
+const pin=prompt("PIN ?");
 
-  data.tools.forEach(t => {
-    list.innerHTML += `
-      <div>
-        🔧 ${t.nom} :
-        ${t.en_cours ? "🔴 Pris par " + t.emprunteur : "🟢 Libre"}
-      </div>
-    `;
-  });
+if(!nom || !pin) return;
+
+await fetch('/api/add-user-admin?nom='+encodeURIComponent(nom)+'&pin='+pin);
+
+loadUsers();
 }
 
-load();
+async function take(){
 
+const id=document.getElementById("toolId").value;
+
+const r=await fetch('/api/take?nom='+encodeURIComponent(currentUser)+'&pin='+currentPin+'&id='+id);
+const txt=await r.text();
+
+alert(txt);
+}
+
+async function give(){
+
+const id=document.getElementById("toolId").value;
+
+const r=await fetch('/api/return?nom='+encodeURIComponent(currentUser)+'&pin='+currentPin+'&id='+id);
+const txt=await r.text();
+
+alert(txt);
+}
+
+loadUsers();
 </script>
 
 </body>
