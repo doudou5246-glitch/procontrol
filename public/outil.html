@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ProControl App</title>
 
-<script src="https://unpkg.com/html5-qrcode"></script>
-
 <style>
 body{
 margin:0;
@@ -17,7 +15,7 @@ padding:20px;
 }
 .box{
 background:#162845;
-padding:22px;
+padding:20px;
 border-radius:18px;
 margin-bottom:18px;
 }
@@ -25,33 +23,32 @@ h1,h2{margin-top:0}
 input,select{
 width:100%;
 padding:15px;
+font-size:18px;
 border:none;
 border-radius:12px;
-font-size:18px;
 margin-bottom:10px;
 }
 button{
 width:100%;
 padding:15px;
-border:none;
-border-radius:12px;
 font-size:18px;
 font-weight:bold;
+border:none;
+border-radius:12px;
 margin-bottom:10px;
 cursor:pointer;
 }
-.blue{background:#2e6cff;color:white;}
+.blue{background:#2f6cff;color:white;}
 .green{background:#19c15f;color:white;}
-.red{background:#ff4c4c;color:white;}
-.gray{background:#4b5d7d;color:white;}
-.small{font-size:14px;opacity:.8;}
-#reader{margin-top:10px}
+.red{background:#ff4b4b;color:white;}
+.gray{background:#50617f;color:white;}
 .tool{
 background:#24395f;
 padding:12px;
 border-radius:12px;
 margin-top:8px;
 }
+.small{opacity:.8;font-size:14px;}
 </style>
 </head>
 
@@ -66,53 +63,54 @@ margin-top:8px;
 <h2>Connexion</h2>
 
 <select id="nom"></select>
-<input id="pin" placeholder="PIN" type="password">
+<input id="pin" type="password" placeholder="PIN">
 
 <button class="blue" onclick="login()">Se connecter</button>
-<button class="gray" onclick="changeUser()">Changer d'utilisateur</button>
+<button class="gray" onclick="logout()">Changer d'utilisateur</button>
 <button class="green" onclick="createUser()">Créer un profil depuis l'appli</button>
 </div>
 
 <div class="box">
-<h2>Scanner / saisir outil</h2>
+<h2>Prendre / rendre outil</h2>
 
-<input id="toolId" placeholder="ID ou nom outil">
-
-<button class="blue" onclick="startScanner()">📷 Scanner QR</button>
-<button class="gray" onclick="stopScanner()">Fermer caméra</button>
-
-<div id="reader"></div>
+<input id="tool" placeholder="Nom outil ou ID">
 
 <button class="green" onclick="takeTool()">Prendre outil</button>
 <button class="red" onclick="returnTool()">Rendre outil</button>
 
 <div class="small">
-Tu peux scanner un QR, taper l’ID, ou taper le nom exact de l’outil.
+Tape le nom exact ou une partie du nom.
 </div>
 </div>
 
 <div class="box">
-<h2>Mes outils empruntés</h2>
-<button class="blue" onclick="loadMyTools()">Actualiser</button>
+<h2>Mes outils</h2>
+
+<button class="blue" onclick="loadMine()">Actualiser</button>
 <button class="red" onclick="returnAll()">Tout rendre</button>
-<div id="myTools"></div>
+
+<div id="mine"></div>
 </div>
 
 <script>
 let user="";
 let pin="";
-let scanner=null;
-let tools=[];
+let data={tools:[],users:[]};
 
-/* ========= DATA ========= */
+/* ===== LOAD ===== */
 
-async function loadData(){
+async function refreshData(){
 const r = await fetch('/api/admin');
-const data = await r.json();
+data = await r.json();
 
-tools = data.tools || [];
+fillUsers();
+}
 
-let html='';
+/* ===== USERS ===== */
+
+function fillUsers(){
+
+let html="";
 
 (data.users || []).forEach(u=>{
 html += `<option value="${u.nom}">${u.nom}</option>`;
@@ -126,29 +124,30 @@ document.getElementById("nom").value = last;
 }
 }
 
-/* ========= LOGIN ========= */
+/* ===== LOGIN ===== */
 
 function login(){
 
-user = document.getElementById("nom").value;
-pin = document.getElementById("pin").value;
+user = document.getElementById("nom").value.trim();
+pin = document.getElementById("pin").value.trim();
 
 if(!user || !pin){
-alert("Nom + PIN obligatoire");
+alert("Nom + PIN");
 return;
 }
 
-localStorage.setItem("pc_user", user);
-sessionStorage.setItem("pc_user", user);
-sessionStorage.setItem("pc_pin", pin);
+sessionStorage.setItem("pc_user",user);
+sessionStorage.setItem("pc_pin",pin);
+localStorage.setItem("pc_user",user);
 
 document.getElementById("status").innerHTML =
 "✅ Connecté : "+user;
 
-loadMyTools();
+loadMine();
 }
 
-function restoreSession(){
+function restore(){
+
 user = sessionStorage.getItem("pc_user") || "";
 pin = sessionStorage.getItem("pc_pin") || "";
 
@@ -158,17 +157,14 @@ document.getElementById("status").innerHTML =
 }
 }
 
-/* ========= CHANGE USER ========= */
-
-function changeUser(){
+function logout(){
 sessionStorage.clear();
-document.getElementById("pin").value="";
-document.getElementById("status").innerHTML="Non connecté";
 user="";
 pin="";
+document.getElementById("status").innerHTML="Non connecté";
 }
 
-/* ========= CREATE USER ========= */
+/* ===== CREATE USER ===== */
 
 async function createUser(){
 
@@ -184,235 +180,180 @@ encodeURIComponent(nom)+
 '&pin='+code
 );
 
-const txt = await r.text();
+alert(await r.text());
 
-alert(txt);
+await refreshData();
 
-await loadData();
 document.getElementById("nom").value = nom;
 }
 
-/* ========= FIND TOOL ========= */
+/* ===== FIND TOOL ===== */
 
-function getToolId(){
-function normalize(str){
-return String(str || "")
+function norm(x){
+return String(x||"")
 .toLowerCase()
 .trim()
 .replace(/\s+/g," ");
 }
 
-function getToolId(){
+function findTool(){
 
-let value = normalize(
-document.getElementById("toolId").value
+let value = norm(
+document.getElementById("tool").value
 );
 
-if(!value) return "";
+if(!value) return null;
 
-/* recherche par ID */
-let byId = tools.find(t =>
-String(t.id) === value
+/* id exact */
+let t = data.tools.find(x =>
+String(x.id) === value
 );
+if(t) return t;
 
-if(byId) return byId.id;
-
-/* recherche nom exact */
-let byName = tools.find(t =>
-normalize(t.nom) === value
+/* nom exact */
+t = data.tools.find(x =>
+norm(x.nom) === value
 );
+if(t) return t;
 
-if(byName) return byName.id;
-
-/* recherche partielle */
-let partial = tools.find(t =>
-normalize(t.nom).includes(value)
+/* nom partiel */
+t = data.tools.find(x =>
+norm(x.nom).includes(value)
 );
+if(t) return t;
 
-if(partial) return partial.id;
-
-return "";
+return null;
 }
 
-/* ========= TAKE ========= */
+/* ===== TAKE ===== */
 
 async function takeTool(){
-
-if(!user || !pin){
-alert("Connecte-toi d'abord");
-return;
-}
-
-const id = getToolId();
-
-const r = await fetch(
-'/api/take?nom='+
-encodeURIComponent(user)+
-'&pin='+pin+
-'&id='+id
-);
-
-const txt = await r.text();
-
-alert(txt);
-
-await loadData();
-await loadMyTools();
-}
-
-/* ========= RETURN ========= */
-
-async function returnTool(){
-
-if(!user || !pin){
-alert("Connecte-toi d'abord");
-return;
-}
-
-const id = getToolId();
-
-const r = await fetch(
-'/api/return?nom='+
-encodeURIComponent(user)+
-'&pin='+pin+
-'&id='+id
-);
-
-const txt = await r.text();
-
-alert(txt);
-
-await loadData();
-await loadMyTools();
-}
-
-/* ========= MY TOOLS ========= */
-
-async function loadMyTools(){
-
-if(!user || !pin){
-document.getElementById("myTools").innerHTML =
-"<div class='small'>Connecte-toi pour voir tes outils.</div>";
-return;
-}
-
-const r = await fetch('/api/admin');
-const data = await r.json();
-
-let my = (data.tools || []).filter(t => t.emprunteur === user);
-
-let html = "";
-
-my.forEach(t=>{
-html += `
-<div class="tool">
-<b>${t.nom}</b><br>
-ID : ${t.id}<br>
-<button class="red" onclick="returnOne('${t.id}')">Rendre</button>
-</div>
-`;
-});
-
-document.getElementById("myTools").innerHTML =
-html || "<div class='small'>Aucun outil emprunté.</div>";
-}
-
-async function returnOne(id){
-
-const r = await fetch(
-'/api/return?nom='+
-encodeURIComponent(user)+
-'&pin='+pin+
-'&id='+id
-);
-
-const txt = await r.text();
-alert(txt);
-
-await loadData();
-await loadMyTools();
-}
-
-async function returnAll(){
 
 if(!user || !pin){
 alert("Connecte-toi");
 return;
 }
 
-const r = await fetch('/api/admin');
-const data = await r.json();
+const t = findTool();
 
-let my = (data.tools || []).filter(t => t.emprunteur === user);
+if(!t){
+alert("Outil introuvable");
+return;
+}
 
-for(const t of my){
+const r = await fetch(
+'/api/take?nom='+
+encodeURIComponent(user)+
+'&pin='+pin+
+'&id='+t.id
+);
+
+alert(await r.text());
+
+await refreshData();
+await loadMine();
+}
+
+/* ===== RETURN ===== */
+
+async function returnTool(){
+
+if(!user || !pin){
+alert("Connecte-toi");
+return;
+}
+
+const t = findTool();
+
+if(!t){
+alert("Outil introuvable");
+return;
+}
+
+const r = await fetch(
+'/api/return?nom='+
+encodeURIComponent(user)+
+'&pin='+pin+
+'&id='+t.id
+);
+
+alert(await r.text());
+
+await refreshData();
+await loadMine();
+}
+
+/* ===== MY TOOLS ===== */
+
+async function loadMine(){
+
+await refreshData();
+
+let mine = data.tools.filter(t =>
+t.emprunteur === user
+);
+
+let html="";
+
+mine.forEach(t=>{
+html += `
+<div class="tool">
+<b>${t.nom}</b><br>
+<button class="red"
+onclick="quickReturn('${t.id}')">
+Rendre
+</button>
+</div>
+`;
+});
+
+document.getElementById("mine").innerHTML =
+html || "Aucun outil";
+}
+
+async function quickReturn(id){
+
+const r = await fetch(
+'/api/return?nom='+
+encodeURIComponent(user)+
+'&pin='+pin+
+'&id='+id
+);
+
+alert(await r.text());
+
+await loadMine();
+}
+
+async function returnAll(){
+
+await refreshData();
+
+let mine = data.tools.filter(t =>
+t.emprunteur === user
+);
+
+for(const t of mine){
+
 await fetch(
 '/api/return?nom='+
 encodeURIComponent(user)+
 '&pin='+pin+
 '&id='+t.id
 );
+
 }
 
 alert("Tout rendu");
-
-await loadData();
-await loadMyTools();
+await loadMine();
 }
 
-/* ========= QR SCANNER ========= */
-
-function extractToolId(text){
-
-try{
-const url = new URL(text);
-const id = url.searchParams.get("tool") || url.searchParams.get("id");
-if(id) return id;
-}catch(e){}
-
-return text;
-}
-
-async function startScanner(){
-
-if(scanner){
-return;
-}
-
-scanner = new Html5Qrcode("reader");
-
-await scanner.start(
-{ facingMode: "environment" },
-{ fps:10, qrbox:250 },
-decodedText => {
-const id = extractToolId(decodedText);
-document.getElementById("toolId").value = id;
-stopScanner();
-}
-);
-}
-
-async function stopScanner(){
-
-if(scanner){
-await scanner.stop();
-await scanner.clear();
-scanner=null;
-}
-}
-
-/* ========= INIT ========= */
+/* ===== INIT ===== */
 
 async function init(){
-await loadData();
-restoreSession();
-
-const params = new URLSearchParams(window.location.search);
-const tool = params.get("tool") || params.get("id");
-
-if(tool){
-document.getElementById("toolId").value = tool;
-}
+await refreshData();
+restore();
+if(user) loadMine();
 }
 
 init();
