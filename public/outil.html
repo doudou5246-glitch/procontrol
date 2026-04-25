@@ -81,7 +81,7 @@ margin-top:10px;
 <div class="box">
 <h2>Prendre / rendre outil</h2>
 
-<input id="tool" placeholder="Nom outil, ID ou QR">
+<input id="tool" placeholder="Nom outil ou ID">
 
 <button class="blue" onclick="startQR()">📷 Scanner QR</button>
 <button class="gray" onclick="stopQR()">Fermer caméra</button>
@@ -92,7 +92,7 @@ margin-top:10px;
 <button class="red" onclick="returnTool()">Rendre outil</button>
 
 <div class="small">
-Tape nom / ID ou scan QR.
+Tape le nom, l’ID ou scan un QR code.
 </div>
 </div>
 
@@ -111,7 +111,7 @@ let pin="";
 let data={tools:[],users:[]};
 let qrScanner=null;
 
-/* ===== DATA ===== */
+/* ===== LOAD DATA ===== */
 
 async function refreshData(){
 
@@ -239,7 +239,7 @@ norm(x.nom) === value
 
 if(t) return t;
 
-/* partiel */
+/* nom partiel */
 t = data.tools.find(x =>
 norm(x.nom).includes(value)
 );
@@ -380,7 +380,7 @@ alert("Tout rendu");
 await loadMine();
 }
 
-/* ===== QR ===== */
+/* ===== QR CAMERA ===== */
 
 function extractValue(text){
 
@@ -413,13 +413,10 @@ await qrScanner.start(
 { facingMode:"environment" },
 { fps:10, qrbox:250 },
 
-async decodedText => {
+(decodedText)=>{
 
-const val = extractValue(decodedText);
-
-document.getElementById("tool").value = val;
-
-await takeTool();
+document.getElementById("tool").value =
+extractValue(decodedText);
 
 }
 );
