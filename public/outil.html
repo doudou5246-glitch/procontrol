@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ProControl App</title>
 
+<script src="https://unpkg.com/html5-qrcode"></script>
+
 <style>
 body{
 margin:0;
@@ -48,7 +50,13 @@ padding:12px;
 border-radius:12px;
 margin-top:8px;
 }
-.small{opacity:.8;font-size:14px;}
+.small{
+opacity:.8;
+font-size:14px;
+}
+#reader{
+margin-top:10px;
+}
 </style>
 </head>
 
@@ -67,19 +75,24 @@ margin-top:8px;
 
 <button class="blue" onclick="login()">Se connecter</button>
 <button class="gray" onclick="logout()">Changer d'utilisateur</button>
-<button class="green" onclick="createUser()">Créer un profil depuis l'appli</button>
+<button class="green" onclick="createUser()">Créer profil depuis appli</button>
 </div>
 
 <div class="box">
 <h2>Prendre / rendre outil</h2>
 
-<input id="tool" placeholder="Nom outil ou ID">
+<input id="tool" placeholder="Nom outil, ID ou QR">
+
+<button class="blue" onclick="startQR()">📷 Scanner QR</button>
+<button class="gray" onclick="stopQR()">Fermer caméra</button>
+
+<div id="reader"></div>
 
 <button class="green" onclick="takeTool()">Prendre outil</button>
 <button class="red" onclick="returnTool()">Rendre outil</button>
 
 <div class="small">
-Tape le nom exact ou une partie du nom.
+Tape nom / ID ou scan QR.
 </div>
 </div>
 
@@ -96,10 +109,12 @@ Tape le nom exact ou une partie du nom.
 let user="";
 let pin="";
 let data={tools:[],users:[]};
+let qrScanner=null;
 
-/* ===== LOAD ===== */
+/* ===== DATA ===== */
 
 async function refreshData(){
+
 const r = await fetch('/api/admin');
 data = await r.json();
 
@@ -119,6 +134,7 @@ html += `<option value="${u.nom}">${u.nom}</option>`;
 document.getElementById("nom").innerHTML = html;
 
 const last = localStorage.getItem("pc_user");
+
 if(last){
 document.getElementById("nom").value = last;
 }
@@ -158,10 +174,14 @@ document.getElementById("status").innerHTML =
 }
 
 function logout(){
+
 sessionStorage.clear();
+
 user="";
 pin="";
-document.getElementById("status").innerHTML="Non connecté";
+
+document.getElementById("status").innerHTML =
+"Non connecté";
 }
 
 /* ===== CREATE USER ===== */
@@ -190,7 +210,8 @@ document.getElementById("nom").value = nom;
 /* ===== FIND TOOL ===== */
 
 function norm(x){
-return String(x||"")
+
+return String(x || "")
 .toLowerCase()
 .trim()
 .replace(/\s+/g," ");
@@ -204,22 +225,25 @@ document.getElementById("tool").value
 
 if(!value) return null;
 
-/* id exact */
+/* id */
 let t = data.tools.find(x =>
 String(x.id) === value
 );
+
 if(t) return t;
 
 /* nom exact */
 t = data.tools.find(x =>
 norm(x.nom) === value
 );
+
 if(t) return t;
 
-/* nom partiel */
+/* partiel */
 t = data.tools.find(x =>
 norm(x.nom).includes(value)
 );
+
 if(t) return t;
 
 return null;
@@ -233,6 +257,8 @@ if(!user || !pin){
 alert("Connecte-toi");
 return;
 }
+
+await refreshData();
 
 const t = findTool();
 
@@ -262,6 +288,8 @@ if(!user || !pin){
 alert("Connecte-toi");
 return;
 }
+
+await refreshData();
 
 const t = findTool();
 
@@ -296,15 +324,18 @@ t.emprunteur === user
 let html="";
 
 mine.forEach(t=>{
+
 html += `
 <div class="tool">
 <b>${t.nom}</b><br>
+ID : ${t.id}<br>
 <button class="red"
 onclick="quickReturn('${t.id}')">
 Rendre
 </button>
 </div>
 `;
+
 });
 
 document.getElementById("mine").innerHTML =
@@ -345,20 +376,27 @@ encodeURIComponent(user)+
 }
 
 alert("Tout rendu");
+
 await loadMine();
 }
 
-/* ===== INIT ===== */
+/* ===== QR ===== */
 
-async function init(){
-await refreshData();
-restore();
-if(user) loadMine();
+function extractValue(text){
+
+try{
+const url = new URL(text);
+
+const id =
+url.searchParams.get("tool") ||
+url.searchParams.get("id");
+
+if(id) return id;
+
+}catch(e){}
+
+return text;
 }
-<script src="https://unpkg.com/html5-qrcode"></script>
-
-<script>
-let qrScanner=null;
 
 async function startQR(){
 
@@ -367,7 +405,7 @@ alert("Connecte-toi");
 return;
 }
 
-document.getElementById("reader").style.display="block";
+if(qrScanner) return;
 
 qrScanner = new Html5Qrcode("reader");
 
@@ -377,7 +415,9 @@ await qrScanner.start(
 
 async decodedText => {
 
-document.getElementById("tool").value = decodedText;
+const val = extractValue(decodedText);
+
+document.getElementById("tool").value = val;
 
 await takeTool();
 
@@ -388,15 +428,27 @@ await takeTool();
 async function stopQR(){
 
 if(qrScanner){
+
 await qrScanner.stop();
 await qrScanner.clear();
+
 qrScanner=null;
 }
-
-document.getElementById("reader").style.display="none";
 }
-</script>
-  
+
+/* ===== INIT ===== */
+
+async function init(){
+
+await refreshData();
+
+restore();
+
+if(user){
+loadMine();
+}
+}
+
 init();
 </script>
 
