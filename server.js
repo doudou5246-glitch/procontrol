@@ -1,10 +1,13 @@
 const express = require("express");
 const path = require("path");
 const fs = require("fs");
+const QRCode = require("qrcode");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-const QRCode = require("qrcode");
+
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "Admin2026!";
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -27,6 +30,7 @@ function load() {
       )
     );
   }
+
   return JSON.parse(fs.readFileSync(DB, "utf8"));
 }
 
@@ -38,8 +42,23 @@ function now() {
   return new Date().toLocaleString("fr-FR");
 }
 
+function isAdmin(req) {
+  const user = req.query.user || "";
+  const pass = req.query.pass || "";
+
+  return user === ADMIN_USER && pass === ADMIN_PASS;
+}
+
+function publicUrl(req) {
+  return req.protocol + "://" + req.get("host");
+}
+
+app.get("/", (req, res) => {
+  res.redirect("/outil.html");
+});
+
 /* =======================
-   ADMIN DATA
+   PUBLIC DATA
 ======================= */
 
 app.get("/api/admin", (req, res) => {
@@ -55,7 +74,7 @@ app.get("/api/add-user-admin", (req, res) => {
   const { nom, pin } = req.query;
   const db = load();
 
-  if (!nom || !pin) return res.send("Nom ou pin manquant");
+  if (!nom || !pin) return res.send("Nom ou PIN manquant");
 
   const exist = db.users.find(
     u => u.nom.toLowerCase() === nom.toLowerCase()
@@ -74,8 +93,19 @@ app.get("/api/add-user-admin", (req, res) => {
 });
 
 app.get("/api/delete-user", (req, res) => {
+  if (!isAdmin(req)) return res.status(401).send("Accès refusé");
+
   const { id } = req.query;
   const db = load();
+
+  const user = db.users.find(u => String(u.id) === String(id));
+
+  if (user) {
+    const hasTools = db.tools.some(t => t.emprunteur === user.nom);
+    if (hasTools) {
+      return res.send("Impossible : utilisateur avec matériel en cours");
+    }
+  }
 
   db.users = db.users.filter(u => String(u.id) !== String(id));
 
@@ -88,13 +118,17 @@ app.get("/api/delete-user", (req, res) => {
 ======================= */
 
 app.get("/api/add-tool", (req, res) => {
+  if (!isAdmin(req)) return res.status(401).send("Accès refusé");
+
   const { nom } = req.query;
   const db = load();
 
   if (!nom) return res.send("Nom manquant");
 
+  const id = Date.now();
+
   db.tools.push({
-    id: Date.now(),
+    id,
     nom,
     emprunteur: "",
     en_cours: false,
@@ -102,10 +136,18 @@ app.get("/api/add-tool", (req, res) => {
   });
 
   save(db);
-  res.send("Outil ajouté");
+
+  res.json({
+    message: "Outil ajouté",
+    id,
+    nom,
+    qr: publicUrl(req) + "/qrcode/" + id
+  });
 });
 
 app.get("/api/delete-tool", (req, res) => {
+  if (!isAdmin(req)) return res.status(401).send("Accès refusé");
+
   const { id } = req.query;
   const db = load();
 
@@ -116,7 +158,7 @@ app.get("/api/delete-tool", (req, res) => {
 });
 
 /* =======================
-   PRENDRE
+   TAKE TOOL
 ======================= */
 
 app.get("/api/take", (req, res) => {
@@ -125,7 +167,7 @@ app.get("/api/take", (req, res) => {
 
   const user = db.users.find(
     u =>
-      u.nom.toLowerCase() === nom.toLowerCase() &&
+      u.nom.toLowerCase() === String(nom || "").toLowerCase() &&
       u.pin === pin
   );
 
@@ -135,26 +177,27 @@ app.get("/api/take", (req, res) => {
 
   if (!tool) return res.send("Outil introuvable");
 
-  if (tool.en_cours)
+  if (tool.en_cours) {
     return res.send("Déjà pris par " + tool.emprunteur);
+  }
 
   tool.en_cours = true;
-  tool.emprunteur = nom;
+  tool.emprunteur = user.nom;
   tool.date_sortie = now();
 
   db.mouvements.push({
     date: now(),
-    utilisateur: nom,
+    utilisateur: user.nom,
     action: "SORTIE",
     outil: tool.nom
   });
 
   save(db);
-  res.send("OK");
+  res.send("Outil pris");
 });
 
 /* =======================
-   RENDRE
+   RETURN TOOL
 ======================= */
 
 app.get("/api/return", (req, res) => {
@@ -163,7 +206,7 @@ app.get("/api/return", (req, res) => {
 
   const user = db.users.find(
     u =>
-      u.nom.toLowerCase() === nom.toLowerCase() &&
+      u.nom.toLowerCase() === String(nom || "").toLowerCase() &&
       u.pin === pin
   );
 
@@ -173,42 +216,77 @@ app.get("/api/return", (req, res) => {
 
   if (!tool) return res.send("Outil introuvable");
 
+  if (!tool.en_cours) return res.send("Outil déjà disponible");
+
+  if (tool.emprunteur !== user.nom) {
+    return res.send("Impossible : outil pris par " + tool.emprunteur);
+  }
+
   tool.en_cours = false;
   tool.emprunteur = "";
   tool.date_sortie = "";
 
   db.mouvements.push({
     date: now(),
-    utilisateur: nom,
+    utilisateur: user.nom,
     action: "RETOUR",
     outil: tool.nom
   });
 
   save(db);
-  res.send("OK");
+  res.send("Outil rendu");
 });
 
-app.get("/qrcode/:id", async (req,res)=>{
+/* =======================
+   QR CODE
+======================= */
 
-const id=req.params.id;
+app.get("/qrcode/:id", async (req, res) => {
+  const id = req.params.id;
 
-const url=
-req.protocol+
-"://"+
-req.get("host")+
-"/outil.html?tool="+id;
+  const url =
+    publicUrl(req) +
+    "/outil.html?tool=" +
+    encodeURIComponent(id);
 
-const qr = await QRCode.toDataURL(url);
+  const qr = await QRCode.toDataURL(url);
 
-res.send(`
-<html>
-<body style="text-align:center;font-family:Arial;background:#0b1730;color:white;padding:30px;">
-<h1>QR outil ${id}</h1>
-<img src="${qr}" style="background:white;padding:15px;border-radius:20px;width:320px;">
-<p>${url}</p>
-</body>
-</html>
-`);
+  res.send(`
+    <html>
+    <head>
+      <title>QR outil ${id}</title>
+      <style>
+        body{
+          font-family:Arial;
+          background:#07162c;
+          color:white;
+          text-align:center;
+          padding:30px;
+        }
+        img{
+          width:320px;
+          max-width:90%;
+          background:white;
+          padding:15px;
+          border-radius:20px;
+        }
+        .box{
+          background:#162845;
+          padding:25px;
+          border-radius:18px;
+          display:inline-block;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="box">
+        <h1>QR outil ${id}</h1>
+        <img src="${qr}">
+        <p>${url}</p>
+      </div>
+    </body>
+    </html>
+  `);
 });
 
 /* =======================
