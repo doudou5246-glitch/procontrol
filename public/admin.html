@@ -19,9 +19,7 @@ padding:25px;
 border-radius:18px;
 margin-bottom:25px;
 }
-h1,h2{
-margin-top:0;
-}
+h1,h2{margin-top:0}
 input{
 padding:14px;
 border:none;
@@ -31,16 +29,19 @@ font-size:18px;
 margin-bottom:10px;
 }
 button{
-padding:14px 20px;
+padding:12px 18px;
 border:none;
 border-radius:10px;
-font-size:16px;
+font-size:15px;
 cursor:pointer;
 font-weight:bold;
+margin-right:6px;
+margin-bottom:6px;
 }
 .green{background:#19c15f;color:white;}
 .red{background:#ff4c4c;color:white;}
 .blue{background:#2e6cff;color:white;}
+.gray{background:#4b5d7d;color:white;}
 table{
 width:100%;
 border-collapse:collapse;
@@ -50,6 +51,11 @@ td,th{
 padding:12px;
 border-bottom:1px solid #31486e;
 text-align:left;
+vertical-align:top;
+}
+.small{
+font-size:13px;
+opacity:.8;
 }
 </style>
 </head>
@@ -76,6 +82,7 @@ text-align:left;
 
 <div class="box">
 <h2>🧰 Outils</h2>
+
 <table>
 <thead>
 <tr>
@@ -83,15 +90,17 @@ text-align:left;
 <th>Nom</th>
 <th>Statut</th>
 <th>Utilisateur</th>
-<th>Action</th>
+<th>Actions</th>
 </tr>
 </thead>
+
 <tbody id="tools"></tbody>
 </table>
 </div>
 
 <div class="box">
 <h2>👤 Utilisateurs</h2>
+
 <table>
 <thead>
 <tr>
@@ -100,56 +109,114 @@ text-align:left;
 <th>Action</th>
 </tr>
 </thead>
+
 <tbody id="users"></tbody>
 </table>
 </div>
 
 <script>
+
 async function load(){
+
 const r = await fetch('/api/admin');
 const data = await r.json();
+
+/* ===== TOOLS ===== */
 
 let html='';
 
 data.tools.forEach(t=>{
-html+=`
+
+html += `
 <tr>
 <td>${t.id}</td>
 <td>${t.nom}</td>
-<td>${t.en_cours?'🔴 Pris':'🟢 Libre'}</td>
-<td>${t.emprunteur||'-'}</td>
-<td><button class="red" onclick="delTool(${t.id})">Supprimer</button></td>
-</tr>`;
+<td>${t.en_cours ? '🔴 Pris':'🟢 Libre'}</td>
+<td>${t.emprunteur || '-'}</td>
+
+<td>
+
+<button class="blue"
+onclick="openQR('${t.id}')">
+QR
+</button>
+
+<button class="gray"
+onclick="copyLink('${t.id}')">
+Lien
+</button>
+
+<button class="red"
+onclick="delTool('${t.id}')">
+Supprimer
+</button>
+
+</td>
+</tr>
+`;
+
 });
 
-document.getElementById("tools").innerHTML=html;
+document.getElementById("tools").innerHTML = html;
+
+/* ===== USERS ===== */
 
 html='';
 
 data.users.forEach(u=>{
-html+=`
+
+html += `
 <tr>
 <td>${u.nom}</td>
 <td>${u.pin}</td>
-<td><button class="red" onclick="delUser(${u.id})">Supprimer</button></td>
-</tr>`;
+
+<td>
+<button class="red"
+onclick="delUser('${u.id}')">
+Supprimer
+</button>
+</td>
+
+</tr>
+`;
+
 });
 
-document.getElementById("users").innerHTML=html;
+document.getElementById("users").innerHTML = html;
 }
 
+/* ===== ADD TOOL ===== */
+
 async function addTool(){
-const nom=document.getElementById("toolName").value;
-await fetch('/api/add-tool?nom='+encodeURIComponent(nom));
+
+const nom =
+document.getElementById("toolName").value;
+
+await fetch(
+'/api/add-tool?nom='+
+encodeURIComponent(nom)
+);
+
 document.getElementById("toolName").value='';
+
 load();
 }
 
-async function addUser(){
-const nom=document.getElementById("userName").value;
-const pin=document.getElementById("userPin").value;
+/* ===== ADD USER ===== */
 
-await fetch('/api/add-user-admin?nom='+encodeURIComponent(nom)+'&pin='+pin);
+async function addUser(){
+
+const nom =
+document.getElementById("userName").value;
+
+const pin =
+document.getElementById("userPin").value;
+
+await fetch(
+'/api/add-user-admin?nom='+
+encodeURIComponent(nom)+
+'&pin='+pin
+);
 
 document.getElementById("userName").value='';
 document.getElementById("userPin").value='';
@@ -157,17 +224,42 @@ document.getElementById("userPin").value='';
 load();
 }
 
+/* ===== DELETE ===== */
+
 async function delTool(id){
+
 await fetch('/api/delete-tool?id='+id);
+
 load();
 }
 
 async function delUser(id){
+
 await fetch('/api/delete-user?id='+id);
+
 load();
 }
 
+/* ===== QR ===== */
+
+function openQR(id){
+
+window.open('/qrcode/'+id,'_blank');
+}
+
+async function copyLink(id){
+
+const url =
+window.location.origin+
+'/outil.html?tool='+id;
+
+await navigator.clipboard.writeText(url);
+
+alert("Lien copié");
+}
+
 load();
+
 </script>
 
 </body>
