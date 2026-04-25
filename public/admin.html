@@ -11,37 +11,38 @@ margin:0;
 font-family:Arial;
 background:#06142b;
 color:white;
-padding:30px;
+padding:25px;
 }
 .box{
 background:#162845;
-padding:25px;
+padding:22px;
 border-radius:18px;
-margin-bottom:25px;
+margin-bottom:20px;
 }
 h1,h2{margin-top:0}
 input{
-padding:14px;
-border:none;
-border-radius:10px;
 width:100%;
+padding:14px;
 font-size:18px;
+border:none;
+border-radius:12px;
 margin-bottom:10px;
 }
 button{
-padding:12px 18px;
+padding:14px 18px;
 border:none;
-border-radius:10px;
-font-size:15px;
-cursor:pointer;
+border-radius:12px;
+font-size:16px;
 font-weight:bold;
+cursor:pointer;
 margin-right:6px;
 margin-bottom:6px;
 }
+.blue{background:#2e6cff;color:white;}
 .green{background:#19c15f;color:white;}
 .red{background:#ff4c4c;color:white;}
-.blue{background:#2e6cff;color:white;}
-.gray{background:#4b5d7d;color:white;}
+.gray{background:#4e5f80;color:white;}
+
 table{
 width:100%;
 border-collapse:collapse;
@@ -53,28 +54,38 @@ border-bottom:1px solid #31486e;
 text-align:left;
 vertical-align:top;
 }
-.small{
-font-size:13px;
-opacity:.8;
-}
+#panel{display:none;}
+.small{font-size:13px;opacity:.8;}
 </style>
 </head>
 
 <body>
 
+<div class="box" id="loginBox">
+<h1>🔒 Connexion Admin</h1>
+
+<input id="user" value="admin" placeholder="Utilisateur">
+<input id="pass" type="password" placeholder="Mot de passe">
+
+<button class="blue" onclick="login()">Connexion</button>
+</div>
+
+<div id="panel">
+
 <div class="box">
-<h1>🔐 Admin ProControl</h1>
+<h1>🛠️ Admin ProControl</h1>
 <button class="blue" onclick="load()">Actualiser</button>
+<button class="gray" onclick="logout()">Déconnexion</button>
 </div>
 
 <div class="box">
-<h2>🧰 Ajouter outil</h2>
-<input id="toolName" placeholder="Nom matériel">
+<h2>Ajouter outil</h2>
+<input id="toolName" placeholder="Nom outil">
 <button class="green" onclick="addTool()">Ajouter</button>
 </div>
 
 <div class="box">
-<h2>👤 Ajouter utilisateur</h2>
+<h2>Ajouter utilisateur</h2>
 <input id="userName" placeholder="Prénom">
 <input id="userPin" placeholder="PIN">
 <button class="green" onclick="addUser()">Ajouter</button>
@@ -106,7 +117,7 @@ opacity:.8;
 <tr>
 <th>Nom</th>
 <th>PIN</th>
-<th>Action</th>
+<th>Actions</th>
 </tr>
 </thead>
 
@@ -114,14 +125,72 @@ opacity:.8;
 </table>
 </div>
 
+</div>
+
 <script>
+
+let ADMIN_USER="";
+let ADMIN_PASS="";
+
+/* ===== LOGIN ===== */
+
+function login(){
+
+ADMIN_USER =
+document.getElementById("user").value.trim();
+
+ADMIN_PASS =
+document.getElementById("pass").value.trim();
+
+if(!ADMIN_USER || !ADMIN_PASS){
+alert("Login requis");
+return;
+}
+
+sessionStorage.setItem("adminUser",ADMIN_USER);
+sessionStorage.setItem("adminPass",ADMIN_PASS);
+
+document.getElementById("loginBox").style.display="none";
+document.getElementById("panel").style.display="block";
+
+load();
+}
+
+function restore(){
+
+ADMIN_USER =
+sessionStorage.getItem("adminUser") || "";
+
+ADMIN_PASS =
+sessionStorage.getItem("adminPass") || "";
+
+if(ADMIN_USER && ADMIN_PASS){
+
+document.getElementById("loginBox").style.display="none";
+document.getElementById("panel").style.display="block";
+
+load();
+}
+}
+
+function logout(){
+
+sessionStorage.clear();
+location.reload();
+}
+
+function auth(){
+return `user=${encodeURIComponent(ADMIN_USER)}&pass=${encodeURIComponent(ADMIN_PASS)}`;
+}
+
+/* ===== LOAD ===== */
 
 async function load(){
 
 const r = await fetch('/api/admin');
 const data = await r.json();
 
-/* ===== TOOLS ===== */
+/* tools */
 
 let html='';
 
@@ -131,8 +200,8 @@ html += `
 <tr>
 <td>${t.id}</td>
 <td>${t.nom}</td>
-<td>${t.en_cours ? '🔴 Pris':'🟢 Libre'}</td>
-<td>${t.emprunteur || '-'}</td>
+<td>${t.en_cours?'🔴 Pris':'🟢 Libre'}</td>
+<td>${t.emprunteur||'-'}</td>
 
 <td>
 
@@ -159,7 +228,7 @@ Supprimer
 
 document.getElementById("tools").innerHTML = html;
 
-/* ===== USERS ===== */
+/* users */
 
 html='';
 
@@ -192,12 +261,17 @@ async function addTool(){
 const nom =
 document.getElementById("toolName").value;
 
-await fetch(
-'/api/add-tool?nom='+
+const r = await fetch(
+'/api/add-tool?'+auth()+
+'&nom='+
 encodeURIComponent(nom)
 );
 
+const txt = await r.text();
+
 document.getElementById("toolName").value='';
+
+alert(txt);
 
 load();
 }
@@ -212,11 +286,14 @@ document.getElementById("userName").value;
 const pin =
 document.getElementById("userPin").value;
 
-await fetch(
-'/api/add-user-admin?nom='+
+const r = await fetch(
+'/api/add-user-admin?'+auth()+
+'&nom='+
 encodeURIComponent(nom)+
 '&pin='+pin
 );
+
+alert(await r.text());
 
 document.getElementById("userName").value='';
 document.getElementById("userPin").value='';
@@ -228,14 +305,24 @@ load();
 
 async function delTool(id){
 
-await fetch('/api/delete-tool?id='+id);
+if(!confirm("Supprimer outil ?")) return;
+
+await fetch(
+'/api/delete-tool?'+auth()+
+'&id='+id
+);
 
 load();
 }
 
 async function delUser(id){
 
-await fetch('/api/delete-user?id='+id);
+if(!confirm("Supprimer utilisateur ?")) return;
+
+await fetch(
+'/api/delete-user?'+auth()+
+'&id='+id
+);
 
 load();
 }
@@ -243,7 +330,6 @@ load();
 /* ===== QR ===== */
 
 function openQR(id){
-
 window.open('/qrcode/'+id,'_blank');
 }
 
@@ -258,7 +344,7 @@ await navigator.clipboard.writeText(url);
 alert("Lien copié");
 }
 
-load();
+restore();
 
 </script>
 
