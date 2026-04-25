@@ -355,7 +355,48 @@ await refreshData();
 restore();
 if(user) loadMine();
 }
+<script src="https://unpkg.com/html5-qrcode"></script>
 
+<script>
+let qrScanner=null;
+
+async function startQR(){
+
+if(!user || !pin){
+alert("Connecte-toi");
+return;
+}
+
+document.getElementById("reader").style.display="block";
+
+qrScanner = new Html5Qrcode("reader");
+
+await qrScanner.start(
+{ facingMode:"environment" },
+{ fps:10, qrbox:250 },
+
+async decodedText => {
+
+document.getElementById("tool").value = decodedText;
+
+await takeTool();
+
+}
+);
+}
+
+async function stopQR(){
+
+if(qrScanner){
+await qrScanner.stop();
+await qrScanner.clear();
+qrScanner=null;
+}
+
+document.getElementById("reader").style.display="none";
+}
+</script>
+  
 init();
 </script>
 
