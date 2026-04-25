@@ -4,6 +4,7 @@ const fs = require("fs");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
+const QRCode = require("qrcode");
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -185,6 +186,29 @@ app.get("/api/return", (req, res) => {
 
   save(db);
   res.send("OK");
+});
+
+app.get("/qrcode/:id", async (req,res)=>{
+
+const id=req.params.id;
+
+const url=
+req.protocol+
+"://"+
+req.get("host")+
+"/outil.html?tool="+id;
+
+const qr = await QRCode.toDataURL(url);
+
+res.send(`
+<html>
+<body style="text-align:center;font-family:Arial;background:#0b1730;color:white;padding:30px;">
+<h1>QR outil ${id}</h1>
+<img src="${qr}" style="background:white;padding:15px;border-radius:20px;width:320px;">
+<p>${url}</p>
+</body>
+</html>
+`);
 });
 
 /* =======================
