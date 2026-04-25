@@ -44,18 +44,41 @@ cursor:pointer;
 .green{background:#19c15f;color:white;}
 .red{background:#ff4b4b;color:white;}
 .gray{background:#50617f;color:white;}
+
 .tool{
 background:#24395f;
 padding:12px;
 border-radius:12px;
 margin-top:8px;
 }
+
 .small{
 opacity:.8;
 font-size:14px;
 }
+
+/* CAMERA FULLSCREEN */
+#scanLayer{
+display:none;
+position:fixed;
+inset:0;
+background:black;
+z-index:9999;
+padding:10px;
+}
+
 #reader{
-margin-top:10px;
+width:100%;
+height:100%;
+}
+
+#closeScan{
+position:absolute;
+top:15px;
+right:15px;
+width:auto;
+padding:12px 16px;
+z-index:10000;
 }
 </style>
 </head>
@@ -74,25 +97,22 @@ margin-top:10px;
 <input id="pin" type="password" placeholder="PIN">
 
 <button class="blue" onclick="login()">Se connecter</button>
-<button class="gray" onclick="logout()">Changer d'utilisateur</button>
-<button class="green" onclick="createUser()">Créer profil depuis appli</button>
+<button class="gray" onclick="logout()">Changer utilisateur</button>
+<button class="green" onclick="createUser()">Créer profil</button>
 </div>
 
 <div class="box">
 <h2>Prendre / rendre outil</h2>
 
-<input id="tool" placeholder="Nom outil ou ID">
+<input id="tool" placeholder="Nom outil / ID / QR">
 
 <button class="blue" onclick="startQR()">📷 Scanner QR</button>
-<button class="gray" onclick="stopQR()">Fermer caméra</button>
-
-<div id="reader"></div>
 
 <button class="green" onclick="takeTool()">Prendre outil</button>
 <button class="red" onclick="returnTool()">Rendre outil</button>
 
 <div class="small">
-Tape le nom, l’ID ou scan un QR code.
+Le QR mémorise l'outil automatiquement.
 </div>
 </div>
 
@@ -105,13 +125,19 @@ Tape le nom, l’ID ou scan un QR code.
 <div id="mine"></div>
 </div>
 
+<!-- CAMERA FULLSCREEN -->
+<div id="scanLayer">
+<button id="closeScan" class="red" onclick="stopQR()">Fermer</button>
+<div id="reader"></div>
+</div>
+
 <script>
 let user="";
 let pin="";
 let data={tools:[],users:[]};
 let qrScanner=null;
 
-/* ===== LOAD DATA ===== */
+/* ===== LOAD ===== */
 
 async function refreshData(){
 
@@ -144,8 +170,11 @@ document.getElementById("nom").value = last;
 
 function login(){
 
-user = document.getElementById("nom").value.trim();
-pin = document.getElementById("pin").value.trim();
+user =
+document.getElementById("nom").value.trim();
+
+pin =
+document.getElementById("pin").value.trim();
 
 if(!user || !pin){
 alert("Nom + PIN");
@@ -159,13 +188,24 @@ localStorage.setItem("pc_user",user);
 document.getElementById("status").innerHTML =
 "✅ Connecté : "+user;
 
+/* si QR avait déjà mis outil */
+const pending =
+sessionStorage.getItem("pending_tool");
+
+if(pending){
+document.getElementById("tool").value = pending;
+}
+
 loadMine();
 }
 
 function restore(){
 
-user = sessionStorage.getItem("pc_user") || "";
-pin = sessionStorage.getItem("pc_pin") || "";
+user =
+sessionStorage.getItem("pc_user") || "";
+
+pin =
+sessionStorage.getItem("pc_pin") || "";
 
 if(user){
 document.getElementById("status").innerHTML =
@@ -210,8 +250,7 @@ document.getElementById("nom").value = nom;
 /* ===== FIND TOOL ===== */
 
 function norm(x){
-
-return String(x || "")
+return String(x||"")
 .toLowerCase()
 .trim()
 .replace(/\s+/g," ");
@@ -219,9 +258,8 @@ return String(x || "")
 
 function findTool(){
 
-let value = norm(
-document.getElementById("tool").value
-);
+let value =
+norm(document.getElementById("tool").value);
 
 if(!value) return null;
 
@@ -229,21 +267,18 @@ if(!value) return null;
 let t = data.tools.find(x =>
 String(x.id) === value
 );
-
 if(t) return t;
 
-/* nom exact */
+/* exact */
 t = data.tools.find(x =>
 norm(x.nom) === value
 );
-
 if(t) return t;
 
-/* nom partiel */
+/* partial */
 t = data.tools.find(x =>
 norm(x.nom).includes(value)
 );
-
 if(t) return t;
 
 return null;
@@ -317,7 +352,8 @@ async function loadMine(){
 
 await refreshData();
 
-let mine = data.tools.filter(t =>
+let mine =
+data.tools.filter(t =>
 t.emprunteur === user
 );
 
@@ -328,7 +364,6 @@ mine.forEach(t=>{
 html += `
 <div class="tool">
 <b>${t.nom}</b><br>
-ID : ${t.id}<br>
 <button class="red"
 onclick="quickReturn('${t.id}')">
 Rendre
@@ -344,23 +379,22 @@ html || "Aucun outil";
 
 async function quickReturn(id){
 
-const r = await fetch(
+await fetch(
 '/api/return?nom='+
 encodeURIComponent(user)+
 '&pin='+pin+
 '&id='+id
 );
 
-alert(await r.text());
-
-await loadMine();
+loadMine();
 }
 
 async function returnAll(){
 
 await refreshData();
 
-let mine = data.tools.filter(t =>
+let mine =
+data.tools.filter(t =>
 t.emprunteur === user
 );
 
@@ -377,10 +411,10 @@ encodeURIComponent(user)+
 
 alert("Tout rendu");
 
-await loadMine();
+loadMine();
 }
 
-/* ===== QR CAMERA ===== */
+/* ===== QR ===== */
 
 function extractValue(text){
 
@@ -400,24 +434,34 @@ return text;
 
 async function startQR(){
 
-if(!user || !pin){
-alert("Connecte-toi");
-return;
-}
-
 if(qrScanner) return;
 
-qrScanner = new Html5Qrcode("reader");
+document.getElementById("scanLayer").style.display="block";
+
+qrScanner =
+new Html5Qrcode("reader");
 
 await qrScanner.start(
 { facingMode:"environment" },
-{ fps:10, qrbox:250 },
+{
+fps:10,
+qrbox:{width:260,height:260}
+},
 
 (decodedText)=>{
 
-document.getElementById("tool").value =
+const val =
 extractValue(decodedText);
 
+document.getElementById("tool").value = val;
+
+/* mémorise */
+sessionStorage.setItem(
+"pending_tool",
+val
+);
+
+stopQR();
 }
 );
 }
@@ -431,6 +475,8 @@ await qrScanner.clear();
 
 qrScanner=null;
 }
+
+document.getElementById("scanLayer").style.display="none";
 }
 
 /* ===== INIT ===== */
@@ -440,6 +486,25 @@ async function init(){
 await refreshData();
 
 restore();
+
+/* qr lien direct */
+const params =
+new URLSearchParams(location.search);
+
+const tool =
+params.get("tool") ||
+params.get("id");
+
+if(tool){
+
+document.getElementById("tool").value =
+tool;
+
+sessionStorage.setItem(
+"pending_tool",
+tool
+);
+}
 
 if(user){
 loadMine();
