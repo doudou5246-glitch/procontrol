@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ProControl App</title>
 
+<script src="https://unpkg.com/html5-qrcode"></script>
+
 <style>
 body{
 margin:0;
@@ -43,6 +45,13 @@ cursor:pointer;
 .red{background:#ff4c4c;color:white;}
 .gray{background:#4b5d7d;color:white;}
 .small{font-size:14px;opacity:.8;}
+#reader{margin-top:10px}
+.tool{
+background:#24395f;
+padding:12px;
+border-radius:12px;
+margin-top:8px;
+}
 </style>
 </head>
 
@@ -57,7 +66,7 @@ cursor:pointer;
 <h2>Connexion</h2>
 
 <select id="nom"></select>
-<input id="pin" placeholder="PIN">
+<input id="pin" placeholder="PIN" type="password">
 
 <button class="blue" onclick="login()">Se connecter</button>
 <button class="gray" onclick="changeUser()">Changer d'utilisateur</button>
@@ -67,29 +76,45 @@ cursor:pointer;
 <div class="box">
 <h2>Scanner / saisir outil</h2>
 
-<input id="toolId" placeholder="ID outil">
+<input id="toolId" placeholder="ID ou nom outil">
+
+<button class="blue" onclick="startScanner()">📷 Scanner QR</button>
+<button class="gray" onclick="stopScanner()">Fermer caméra</button>
+
+<div id="reader"></div>
 
 <button class="green" onclick="takeTool()">Prendre outil</button>
 <button class="red" onclick="returnTool()">Rendre outil</button>
 
 <div class="small">
-Scanner QR plus tard ou taper l'ID outil.
+Tu peux scanner un QR, taper l’ID, ou taper le nom exact de l’outil.
 </div>
+</div>
+
+<div class="box">
+<h2>Mes outils empruntés</h2>
+<button class="blue" onclick="loadMyTools()">Actualiser</button>
+<button class="red" onclick="returnAll()">Tout rendre</button>
+<div id="myTools"></div>
 </div>
 
 <script>
 let user="";
 let pin="";
+let scanner=null;
+let tools=[];
 
-/* ========= LOAD USERS ========= */
+/* ========= DATA ========= */
 
-async function loadUsers(){
+async function loadData(){
 const r = await fetch('/api/admin');
 const data = await r.json();
 
+tools = data.tools || [];
+
 let html='';
 
-data.users.forEach(u=>{
+(data.users || []).forEach(u=>{
 html += `<option value="${u.nom}">${u.nom}</option>`;
 });
 
@@ -109,22 +134,38 @@ user = document.getElementById("nom").value;
 pin = document.getElementById("pin").value;
 
 if(!user || !pin){
-alert("Nom + PIN");
+alert("Nom + PIN obligatoire");
 return;
 }
 
 localStorage.setItem("pc_user", user);
+sessionStorage.setItem("pc_user", user);
+sessionStorage.setItem("pc_pin", pin);
 
 document.getElementById("status").innerHTML =
 "✅ Connecté : "+user;
+
+loadMyTools();
+}
+
+function restoreSession(){
+user = sessionStorage.getItem("pc_user") || "";
+pin = sessionStorage.getItem("pc_pin") || "";
+
+if(user){
+document.getElementById("status").innerHTML =
+"✅ Connecté : "+user;
+}
 }
 
 /* ========= CHANGE USER ========= */
 
 function changeUser(){
-localStorage.removeItem("pc_user");
+sessionStorage.clear();
 document.getElementById("pin").value="";
 document.getElementById("status").innerHTML="Non connecté";
+user="";
+pin="";
 }
 
 /* ========= CREATE USER ========= */
@@ -147,19 +188,40 @@ const txt = await r.text();
 
 alert(txt);
 
-loadUsers();
+await loadData();
+document.getElementById("nom").value = nom;
+}
+
+/* ========= FIND TOOL ========= */
+
+function getToolId(){
+
+let value = document.getElementById("toolId").value.trim();
+
+if(!value) return "";
+
+let byId = tools.find(t => String(t.id) === String(value));
+if(byId) return byId.id;
+
+let byName = tools.find(t => 
+String(t.nom).toLowerCase() === value.toLowerCase()
+);
+
+if(byName) return byName.id;
+
+return value;
 }
 
 /* ========= TAKE ========= */
 
 async function takeTool(){
 
-if(!user){
-alert("Connecte-toi");
+if(!user || !pin){
+alert("Connecte-toi d'abord");
 return;
 }
 
-const id = document.getElementById("toolId").value;
+const id = getToolId();
 
 const r = await fetch(
 '/api/take?nom='+
@@ -171,18 +233,21 @@ encodeURIComponent(user)+
 const txt = await r.text();
 
 alert(txt);
+
+await loadData();
+await loadMyTools();
 }
 
 /* ========= RETURN ========= */
 
 async function returnTool(){
 
-if(!user){
-alert("Connecte-toi");
+if(!user || !pin){
+alert("Connecte-toi d'abord");
 return;
 }
 
-const id = document.getElementById("toolId").value;
+const id = getToolId();
 
 const r = await fetch(
 '/api/return?nom='+
@@ -194,11 +259,141 @@ encodeURIComponent(user)+
 const txt = await r.text();
 
 alert(txt);
+
+await loadData();
+await loadMyTools();
 }
 
-/* ========= AUTO ========= */
+/* ========= MY TOOLS ========= */
 
-loadUsers();
+async function loadMyTools(){
+
+if(!user || !pin){
+document.getElementById("myTools").innerHTML =
+"<div class='small'>Connecte-toi pour voir tes outils.</div>";
+return;
+}
+
+const r = await fetch('/api/admin');
+const data = await r.json();
+
+let my = (data.tools || []).filter(t => t.emprunteur === user);
+
+let html = "";
+
+my.forEach(t=>{
+html += `
+<div class="tool">
+<b>${t.nom}</b><br>
+ID : ${t.id}<br>
+<button class="red" onclick="returnOne('${t.id}')">Rendre</button>
+</div>
+`;
+});
+
+document.getElementById("myTools").innerHTML =
+html || "<div class='small'>Aucun outil emprunté.</div>";
+}
+
+async function returnOne(id){
+
+const r = await fetch(
+'/api/return?nom='+
+encodeURIComponent(user)+
+'&pin='+pin+
+'&id='+id
+);
+
+const txt = await r.text();
+alert(txt);
+
+await loadData();
+await loadMyTools();
+}
+
+async function returnAll(){
+
+if(!user || !pin){
+alert("Connecte-toi");
+return;
+}
+
+const r = await fetch('/api/admin');
+const data = await r.json();
+
+let my = (data.tools || []).filter(t => t.emprunteur === user);
+
+for(const t of my){
+await fetch(
+'/api/return?nom='+
+encodeURIComponent(user)+
+'&pin='+pin+
+'&id='+t.id
+);
+}
+
+alert("Tout rendu");
+
+await loadData();
+await loadMyTools();
+}
+
+/* ========= QR SCANNER ========= */
+
+function extractToolId(text){
+
+try{
+const url = new URL(text);
+const id = url.searchParams.get("tool") || url.searchParams.get("id");
+if(id) return id;
+}catch(e){}
+
+return text;
+}
+
+async function startScanner(){
+
+if(scanner){
+return;
+}
+
+scanner = new Html5Qrcode("reader");
+
+await scanner.start(
+{ facingMode: "environment" },
+{ fps:10, qrbox:250 },
+decodedText => {
+const id = extractToolId(decodedText);
+document.getElementById("toolId").value = id;
+stopScanner();
+}
+);
+}
+
+async function stopScanner(){
+
+if(scanner){
+await scanner.stop();
+await scanner.clear();
+scanner=null;
+}
+}
+
+/* ========= INIT ========= */
+
+async function init(){
+await loadData();
+restoreSession();
+
+const params = new URLSearchParams(window.location.search);
+const tool = params.get("tool") || params.get("id");
+
+if(tool){
+document.getElementById("toolId").value = tool;
+}
+}
+
+init();
 </script>
 
 </body>
