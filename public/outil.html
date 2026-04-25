@@ -195,21 +195,43 @@ document.getElementById("nom").value = nom;
 /* ========= FIND TOOL ========= */
 
 function getToolId(){
+function normalize(str){
+return String(str || "")
+.toLowerCase()
+.trim()
+.replace(/\s+/g," ");
+}
 
-let value = document.getElementById("toolId").value.trim();
+function getToolId(){
+
+let value = normalize(
+document.getElementById("toolId").value
+);
 
 if(!value) return "";
 
-let byId = tools.find(t => String(t.id) === String(value));
+/* recherche par ID */
+let byId = tools.find(t =>
+String(t.id) === value
+);
+
 if(byId) return byId.id;
 
-let byName = tools.find(t => 
-String(t.nom).toLowerCase() === value.toLowerCase()
+/* recherche nom exact */
+let byName = tools.find(t =>
+normalize(t.nom) === value
 );
 
 if(byName) return byName.id;
 
-return value;
+/* recherche partielle */
+let partial = tools.find(t =>
+normalize(t.nom).includes(value)
+);
+
+if(partial) return partial.id;
+
+return "";
 }
 
 /* ========= TAKE ========= */
