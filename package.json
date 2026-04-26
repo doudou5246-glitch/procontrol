@@ -1,26 +1,12 @@
 {
-  "name": "procontrol-render-neon",
-  "version": "1.0.0",
-  "description": "ProControl deployable on Render with Neon PostgreSQL",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
-  "engines": {
-    "node": ">=18"
-  },
-  "dependencies": {
-    "express": "^4.19.2",
-    "pg": "^8.13.1",
-    "qrcode": "^1.5.4"
-  }
-}
-{
   "name": "procontrol",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
+  },
+  "engines": {
+    "node": "18.x"
   },
   "dependencies": {
     "dotenv": "^16.4.5",
