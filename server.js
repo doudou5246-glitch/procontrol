@@ -20,6 +20,10 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+/* =======================
+   INIT NEON
+======================= */
+
 async function initDb() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -49,8 +53,40 @@ async function initDb() {
     );
   `);
 
+  await pool.query(`
+    ALTER TABLE tools ADD COLUMN IF NOT EXISTS emprunteur TEXT DEFAULT '';
+  `);
+
+  await pool.query(`
+    ALTER TABLE tools ADD COLUMN IF NOT EXISTS en_cours BOOLEAN DEFAULT false;
+  `);
+
+  await pool.query(`
+    ALTER TABLE tools ADD COLUMN IF NOT EXISTS date_sortie TEXT DEFAULT '';
+  `);
+
+  await pool.query(`
+    ALTER TABLE mouvements ADD COLUMN IF NOT EXISTS date TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE mouvements ADD COLUMN IF NOT EXISTS utilisateur TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE mouvements ADD COLUMN IF NOT EXISTS action TEXT;
+  `);
+
+  await pool.query(`
+    ALTER TABLE mouvements ADD COLUMN IF NOT EXISTS outil TEXT;
+  `);
+
   console.log("✅ Neon connecté");
 }
+
+/* =======================
+   HELPERS
+======================= */
 
 function now() {
   return new Date().toLocaleString("fr-FR");
@@ -59,6 +95,7 @@ function now() {
 function isAdmin(req) {
   const user = req.query.user || "";
   const pass = req.query.pass || "";
+
   return user === ADMIN_USER && pass === ADMIN_PASS;
 }
 
@@ -66,71 +103,103 @@ function publicUrl(req) {
   return req.protocol + "://" + req.get("host");
 }
 
+/* =======================
+   ROOT
+======================= */
+
 app.get("/", (req, res) => {
   res.redirect("/outil.html");
 });
 
 /* =======================
-   PUBLIC DATA
+   DATA POUR ADMIN + APPLI
 ======================= */
 
 app.get("/api/admin", async (req, res) => {
   try {
-    const users = await pool.query("SELECT * FROM users ORDER BY nom ASC");
-    const tools = await pool.query("SELECT * FROM tools ORDER BY id ASC");
-    const mouvements = await pool.query("SELECT * FROM mouvements ORDER BY id DESC LIMIT 100");
+    const users = await pool.query(`
+      SELECT id, nom, pin
+      FROM users
+      ORDER BY nom ASC
+    `);
+
+    const tools = await pool.query(`
+      SELECT id, nom, emprunteur, en_cours, date_sortie
+      FROM tools
+      ORDER BY id ASC
+    `);
+
+    const mouvements = await pool.query(`
+      SELECT id, date, utilisateur, action, outil
+      FROM mouvements
+      ORDER BY id DESC
+      LIMIT 100
+    `);
 
     res.json({
-      tools: tools.rows,
       users: users.rows,
+      tools: tools.rows,
       mouvements: mouvements.rows
     });
   } catch (e) {
-    console.error(e);
-    res.json({ tools: [], users: [], mouvements: [] });
+    console.error("Erreur /api/admin :", e);
+    res.json({
+      users: [],
+      tools: [],
+      mouvements: []
+    });
   }
 });
 
 /* =======================
-   USERS
+   UTILISATEURS
 ======================= */
 
 app.get("/api/add-user-admin", async (req, res) => {
   try {
     const { nom, pin } = req.query;
 
-    if (!nom || !pin) return res.send("Nom ou PIN manquant");
+    if (!nom || !pin) {
+      return res.send("Nom ou PIN manquant");
+    }
 
     const exist = await pool.query(
-      "SELECT * FROM users WHERE LOWER(nom)=LOWER($1)",
+      "SELECT id FROM users WHERE LOWER(nom)=LOWER($1)",
       [nom]
     );
 
-    if (exist.rows.length) return res.send("Utilisateur déjà existant");
+    if (exist.rows.length) {
+      return res.send("Utilisateur déjà existant");
+    }
 
     await pool.query(
       "INSERT INTO users(nom, pin) VALUES($1, $2)",
-      [nom, pin]
+      [nom.trim(), pin.trim()]
     );
 
     res.send("Utilisateur ajouté");
   } catch (e) {
-    console.error(e);
+    console.error("Erreur ajout utilisateur :", e);
     res.send("Erreur utilisateur");
   }
 });
 
 app.get("/api/delete-user", async (req, res) => {
   try {
-    if (!isAdmin(req)) return res.status(401).send("Accès refusé");
+    if (!isAdmin(req)) {
+      return res.status(401).send("Accès refusé");
+    }
 
     const { id } = req.query;
 
-    const user = await pool.query("SELECT * FROM users WHERE id=$1", [id]);
+    const user = await pool.query(
+      "SELECT * FROM users WHERE id=$1",
+      [id]
+    );
 
     if (user.rows.length) {
       const hasTools = await pool.query(
-        "SELECT * FROM tools WHERE emprunteur=$1",
+        "SELECT id FROM tools WHERE emprunteur=$1",
         [user.rows[0].nom]
       );
 
@@ -139,32 +208,41 @@ app.get("/api/delete-user", async (req, res) => {
       }
     }
 
-    await pool.query("DELETE FROM users WHERE id=$1", [id]);
+    await pool.query(
+      "DELETE FROM users WHERE id=$1",
+      [id]
+    );
 
     res.send("Utilisateur supprimé");
   } catch (e) {
-    console.error(e);
+    console.error("Erreur suppression utilisateur :", e);
     res.send("Erreur suppression utilisateur");
   }
 });
 
 /* =======================
-   TOOLS
+   OUTILS
 ======================= */
 
 app.get("/api/add-tool", async (req, res) => {
   try {
-    if (!isAdmin(req)) return res.status(401).send("Accès refusé");
+    if (!isAdmin(req)) {
+      return res.status(401).send("Accès refusé");
+    }
 
     const { nom } = req.query;
 
-    if (!nom) return res.send("Nom manquant");
+    if (!nom) {
+      return res.send("Nom manquant");
+    }
 
     const result = await pool.query(
-      `INSERT INTO tools(nom, emprunteur, en_cours, date_sortie)
-       VALUES($1, '', false, '')
-       RETURNING id, nom`,
-      [nom]
+      `
+      INSERT INTO tools(nom, emprunteur, en_cours, date_sortie)
+      VALUES($1, '', false, '')
+      RETURNING id, nom
+      `,
+      [nom.trim()]
     );
 
     const tool = result.rows[0];
@@ -176,28 +254,33 @@ app.get("/api/add-tool", async (req, res) => {
       qr: publicUrl(req) + "/qrcode/" + tool.id
     });
   } catch (e) {
-    console.error(e);
+    console.error("Erreur ajout outil :", e);
     res.send("Erreur ajout outil");
   }
 });
 
 app.get("/api/delete-tool", async (req, res) => {
   try {
-    if (!isAdmin(req)) return res.status(401).send("Accès refusé");
+    if (!isAdmin(req)) {
+      return res.status(401).send("Accès refusé");
+    }
 
     const { id } = req.query;
 
-    await pool.query("DELETE FROM tools WHERE id=$1", [id]);
+    await pool.query(
+      "DELETE FROM tools WHERE id=$1",
+      [id]
+    );
 
     res.send("Outil supprimé");
   } catch (e) {
-    console.error(e);
+    console.error("Erreur suppression outil :", e);
     res.send("Erreur suppression outil");
   }
 });
 
 /* =======================
-   TAKE TOOL
+   PRENDRE OUTIL
 ======================= */
 
 app.get("/api/take", async (req, res) => {
@@ -205,20 +288,31 @@ app.get("/api/take", async (req, res) => {
     const { nom, pin, id } = req.query;
 
     const user = await pool.query(
-      `SELECT * FROM users
-       WHERE LOWER(nom)=LOWER($1)
-       AND pin=$2`,
+      `
+      SELECT *
+      FROM users
+      WHERE LOWER(nom)=LOWER($1)
+      AND pin=$2
+      `,
       [nom || "", pin || ""]
     );
 
-    if (!user.rows.length) return res.send("Utilisateur incorrect");
+    if (!user.rows.length) {
+      return res.send("Utilisateur incorrect");
+    }
 
     const tool = await pool.query(
-      "SELECT * FROM tools WHERE id::text=$1",
+      `
+      SELECT *
+      FROM tools
+      WHERE id::text=$1
+      `,
       [String(id || "")]
     );
 
-    if (!tool.rows.length) return res.send("Outil introuvable");
+    if (!tool.rows.length) {
+      return res.send("Outil introuvable");
+    }
 
     const t = tool.rows[0];
 
@@ -227,29 +321,37 @@ app.get("/api/take", async (req, res) => {
     }
 
     await pool.query(
-      `UPDATE tools
-       SET en_cours=true,
-           emprunteur=$1,
-           date_sortie=$2
-       WHERE id=$3`,
+      `
+      UPDATE tools
+      SET en_cours=true,
+          emprunteur=$1,
+          date_sortie=$2
+      WHERE id=$3
+      `,
       [user.rows[0].nom, now(), t.id]
     );
 
-    await pool.query(
-      `INSERT INTO mouvements(date, utilisateur, action, outil)
-       VALUES($1, $2, 'SORTIE', $3)`,
-      [now(), user.rows[0].nom, t.nom]
-    );
+    try {
+      await pool.query(
+        `
+        INSERT INTO mouvements(date, utilisateur, action, outil)
+        VALUES($1, $2, 'SORTIE', $3)
+        `,
+        [now(), user.rows[0].nom, t.nom]
+      );
+    } catch (histErr) {
+      console.log("Historique ignoré :", histErr.message);
+    }
 
     res.send("Outil pris");
   } catch (e) {
-    console.error(e);
+    console.error("Erreur prise outil :", e);
     res.send("Erreur prise outil");
   }
 });
 
 /* =======================
-   RETURN TOOL
+   RENDRE OUTIL
 ======================= */
 
 app.get("/api/return", async (req, res) => {
@@ -257,47 +359,71 @@ app.get("/api/return", async (req, res) => {
     const { nom, pin, id } = req.query;
 
     const user = await pool.query(
-      `SELECT * FROM users
-       WHERE LOWER(nom)=LOWER($1)
-       AND pin=$2`,
+      `
+      SELECT *
+      FROM users
+      WHERE LOWER(nom)=LOWER($1)
+      AND pin=$2
+      `,
       [nom || "", pin || ""]
     );
 
-    if (!user.rows.length) return res.send("Utilisateur incorrect");
+    if (!user.rows.length) {
+      return res.send("Utilisateur incorrect");
+    }
 
     const tool = await pool.query(
-      "SELECT * FROM tools WHERE id::text=$1",
+      `
+      SELECT *
+      FROM tools
+      WHERE id::text=$1
+      `,
       [String(id || "")]
     );
 
-    if (!tool.rows.length) return res.send("Outil introuvable");
+    if (!tool.rows.length) {
+      return res.send("Outil introuvable");
+    }
 
     const t = tool.rows[0];
 
-    if (!t.en_cours) return res.send("Outil déjà disponible");
+    if (!t.en_cours) {
+      return res.send("Outil déjà disponible");
+    }
 
-    if (String(t.emprunteur).toLowerCase() !== String(user.rows[0].nom).toLowerCase()) {
+    if (
+      String(t.emprunteur).toLowerCase() !==
+      String(user.rows[0].nom).toLowerCase()
+    ) {
       return res.send("Impossible : outil pris par " + t.emprunteur);
     }
 
     await pool.query(
-      `UPDATE tools
-       SET en_cours=false,
-           emprunteur='',
-           date_sortie=''
-       WHERE id=$1`,
+      `
+      UPDATE tools
+      SET en_cours=false,
+          emprunteur='',
+          date_sortie=''
+      WHERE id=$1
+      `,
       [t.id]
     );
 
-    await pool.query(
-      `INSERT INTO mouvements(date, utilisateur, action, outil)
-       VALUES($1, $2, 'RETOUR', $3)`,
-      [now(), user.rows[0].nom, t.nom]
-    );
+    try {
+      await pool.query(
+        `
+        INSERT INTO mouvements(date, utilisateur, action, outil)
+        VALUES($1, $2, 'RETOUR', $3)
+        `,
+        [now(), user.rows[0].nom, t.nom]
+      );
+    } catch (histErr) {
+      console.log("Historique ignoré :", histErr.message);
+    }
 
     res.send("Outil rendu");
   } catch (e) {
-    console.error(e);
+    console.error("Erreur retour outil :", e);
     res.send("Erreur retour outil");
   }
 });
@@ -354,7 +480,7 @@ app.get("/qrcode/:id", async (req, res) => {
       </html>
     `);
   } catch (e) {
-    console.error(e);
+    console.error("Erreur QR :", e);
     res.send("Erreur QR");
   }
 });
@@ -367,6 +493,7 @@ initDb()
   .then(() => {
     app.listen(PORT, () => {
       console.log("Serveur OK port " + PORT);
+      console.log("✅ Neon connecté");
     });
   })
   .catch((e) => {
