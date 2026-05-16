@@ -89,7 +89,7 @@ async function initDb() {
 ======================= */
 
 function now() {
-  return new Date().toLocaleString("fr-FR");
+  return new Date().toISOString();
 }
 
 function isAdmin(req) {
