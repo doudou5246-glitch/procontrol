@@ -1,136 +1,3 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ProControl App</title>
-
-<script src="https://unpkg.com/html5-qrcode"></script>
-
-<style>
-body{
-margin:0;
-font-family:Arial;
-background:#07162c;
-color:white;
-padding:20px;
-}
-.box{
-background:#162845;
-padding:20px;
-border-radius:18px;
-margin-bottom:18px;
-}
-h1,h2{margin-top:0}
-input,select{
-width:100%;
-padding:15px;
-font-size:18px;
-border:none;
-border-radius:12px;
-margin-bottom:10px;
-}
-button{
-width:100%;
-padding:15px;
-font-size:18px;
-font-weight:bold;
-border:none;
-border-radius:12px;
-margin-bottom:10px;
-cursor:pointer;
-}
-.blue{background:#2f6cff;color:white;}
-.green{background:#19c15f;color:white;}
-.red{background:#ff4b4b;color:white;}
-.gray{background:#50617f;color:white;}
-
-.tool{
-background:#24395f;
-padding:12px;
-border-radius:12px;
-margin-top:8px;
-}
-
-.small{
-opacity:.8;
-font-size:14px;
-}
-
-/* CAMERA FULLSCREEN */
-#scanLayer{
-display:none;
-position:fixed;
-inset:0;
-background:black;
-z-index:9999;
-padding:10px;
-}
-
-#reader{
-width:100%;
-height:100%;
-}
-
-#closeScan{
-position:absolute;
-top:15px;
-right:15px;
-width:auto;
-padding:12px 16px;
-z-index:10000;
-}
-</style>
-</head>
-
-<body>
-
-<div class="box">
-<h1>📱 ProControl</h1>
-<div id="status">Non connecté</div>
-</div>
-
-<div class="box">
-<h2>Connexion</h2>
-
-<select id="nom"></select>
-<input id="pin" type="password" placeholder="PIN">
-
-<button class="blue" onclick="login()">Se connecter</button>
-<button class="gray" onclick="logout()">Changer utilisateur</button>
-<button class="green" onclick="createUser()">Créer profil</button>
-</div>
-
-<div class="box">
-<h2>Prendre / rendre outil</h2>
-
-<input id="tool" placeholder="Nom outil / ID / QR">
-
-<button class="blue" onclick="startQR()">📷 Scanner QR</button>
-
-<button class="green" onclick="takeTool()">Prendre outil</button>
-<button class="red" onclick="returnTool()">Rendre outil</button>
-
-<div class="small">
-Le QR mémorise l'outil automatiquement.
-</div>
-</div>
-
-<div class="box">
-<h2>Mes outils</h2>
-
-<button class="blue" onclick="loadMine()">Actualiser</button>
-<button class="red" onclick="returnAll()">Tout rendre</button>
-
-<div id="mine"></div>
-</div>
-
-<!-- CAMERA FULLSCREEN -->
-<div id="scanLayer">
-<button id="closeScan" class="red" onclick="stopQR()">Fermer</button>
-<div id="reader"></div>
-</div>
-
 <script>
 let user="";
 let pin="";
@@ -166,29 +33,48 @@ document.getElementById("nom").value = last;
 }
 }
 
-/* ===== LOGIN ===== */
+/* ===== LOGIN (CORRIGÉ) ===== */
 
-function login(){
+async function login(){
 
-user =
+const selectedUser =
 document.getElementById("nom").value.trim();
 
-pin =
+const enteredPin =
 document.getElementById("pin").value.trim();
 
-if(!user || !pin){
+if(!selectedUser || !enteredPin){
 alert("Nom + PIN");
 return;
 }
 
-sessionStorage.setItem("pc_user",user);
-sessionStorage.setItem("pc_pin",pin);
-localStorage.setItem("pc_user",user);
+/* Recharge les utilisateurs depuis le serveur */
+await refreshData();
+
+/* Vérifie réellement le PIN */
+const found =
+(data.users || []).find(u =>
+String(u.nom).toLowerCase() === selectedUser.toLowerCase() &&
+String(u.pin) === enteredPin
+);
+
+if(!found){
+alert("Mauvais PIN");
+return;
+}
+
+/* Connexion validée */
+user = found.nom;
+pin = enteredPin;
+
+sessionStorage.setItem("pc_user", user);
+sessionStorage.setItem("pc_pin", pin);
+localStorage.setItem("pc_user", user);
 
 document.getElementById("status").innerHTML =
-"✅ Connecté : "+user;
+"✅ Connecté : " + user;
 
-/* si QR avait déjà mis outil */
+/* Si un QR avait déjà été scanné */
 const pending =
 sessionStorage.getItem("pending_tool");
 
@@ -209,7 +95,7 @@ sessionStorage.getItem("pc_pin") || "";
 
 if(user){
 document.getElementById("status").innerHTML =
-"✅ Connecté : "+user;
+"✅ Connecté : " + user;
 }
 }
 
@@ -263,19 +149,19 @@ norm(document.getElementById("tool").value);
 
 if(!value) return null;
 
-/* id */
+/* Recherche par ID */
 let t = data.tools.find(x =>
 String(x.id) === value
 );
 if(t) return t;
 
-/* exact */
+/* Recherche exacte */
 t = data.tools.find(x =>
 norm(x.nom) === value
 );
 if(t) return t;
 
-/* partial */
+/* Recherche partielle */
 t = data.tools.find(x =>
 norm(x.nom).includes(value)
 );
@@ -305,8 +191,8 @@ return;
 const r = await fetch(
 '/api/take?nom='+
 encodeURIComponent(user)+
-'&pin='+pin+
-'&id='+t.id
+'&pin='+encodeURIComponent(pin)+
+'&id='+encodeURIComponent(t.id)
 );
 
 alert(await r.text());
@@ -336,8 +222,8 @@ return;
 const r = await fetch(
 '/api/return?nom='+
 encodeURIComponent(user)+
-'&pin='+pin+
-'&id='+t.id
+'&pin='+encodeURIComponent(pin)+
+'&id='+encodeURIComponent(t.id)
 );
 
 alert(await r.text());
@@ -382,8 +268,8 @@ async function quickReturn(id){
 await fetch(
 '/api/return?nom='+
 encodeURIComponent(user)+
-'&pin='+pin+
-'&id='+id
+'&pin='+encodeURIComponent(pin)+
+'&id='+encodeURIComponent(id)
 );
 
 loadMine();
@@ -403,8 +289,8 @@ for(const t of mine){
 await fetch(
 '/api/return?nom='+
 encodeURIComponent(user)+
-'&pin='+pin+
-'&id='+t.id
+'&pin='+encodeURIComponent(pin)+
+'&id='+encodeURIComponent(t.id)
 );
 
 }
@@ -447,7 +333,6 @@ await qrScanner.start(
 fps:10,
 qrbox:{width:260,height:260}
 },
-
 (decodedText)=>{
 
 const val =
@@ -455,7 +340,6 @@ extractValue(decodedText);
 
 document.getElementById("tool").value = val;
 
-/* mémorise */
 sessionStorage.setItem(
 "pending_tool",
 val
@@ -487,7 +371,6 @@ await refreshData();
 
 restore();
 
-/* qr lien direct */
 const params =
 new URLSearchParams(location.search);
 
@@ -513,6 +396,3 @@ loadMine();
 
 init();
 </script>
-
-</body>
-</html>
