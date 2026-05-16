@@ -1,4 +1,4 @@
-ProControl - version Render + Neon
+ProControl - version Render + Neon stable 
 
 Ce pack est conçu pour éviter les problèmes de réseau local.
 Objectif : une vraie URL web pour téléphone + QR code.
